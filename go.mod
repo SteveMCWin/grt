@@ -1,3 +1,3 @@
-module tracer
+module grt
 
 go 1.25.6

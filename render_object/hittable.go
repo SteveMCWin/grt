@@ -1,9 +1,9 @@
 package render_object
 
 import (
-	"tracer/ray"
-	"tracer/util"
-	"tracer/vec"
+	"grt/ray"
+	"grt/util"
+	"grt/vec"
 )
 
 type HitRecord struct {

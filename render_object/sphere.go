@@ -2,9 +2,9 @@ package render_object
 
 import (
 	"math"
-	"tracer/ray"
-	"tracer/util"
-	"tracer/vec"
+	"grt/ray"
+	"grt/util"
+	"grt/vec"
 )
 
 type Sphere struct {

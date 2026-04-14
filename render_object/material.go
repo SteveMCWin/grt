@@ -3,8 +3,8 @@ package render_object
 import (
 	"math"
 	"math/rand/v2"
-	"tracer/ray"
-	"tracer/vec"
+	"grt/ray"
+	"grt/vec"
 )
 
 type Material interface {
