@@ -8,7 +8,7 @@ import (
 )
 
 type Material interface {
-	Scatter(r_in *ray.Ray, rec *HitRecord, attenuation *vec.Color, r_out *ray.Ray) bool
+	Scatter(r_in *ray.Ray, rec *HitRecord, r_out *ray.Ray) bool
 }
 
 
@@ -17,7 +17,7 @@ type Lambertian struct {
 	Albedo vec.Color
 }
 
-func (l *Lambertian) Scatter(r_in *ray.Ray, rec *HitRecord, attenuation *vec.Color, r_out *ray.Ray) bool {
+func (l *Lambertian) Scatter(r_in *ray.Ray, rec *HitRecord, r_out *ray.Ray) bool {
 	scatter_direction := vec.Add(rec.Normal, vec.RandUnit())
 
 	if (scatter_direction.NearZero()) {
@@ -25,7 +25,7 @@ func (l *Lambertian) Scatter(r_in *ray.Ray, rec *HitRecord, attenuation *vec.Col
 	}
 
 	*r_out = ray.NewRay(rec.Point, scatter_direction)
-	*attenuation = l.Albedo
+	rec.Color = l.Albedo
 	return true
 }
 
@@ -36,11 +36,11 @@ type Metal struct {
 	Fuzz float64
 }
 
-func (m *Metal) Scatter(r_in *ray.Ray, rec *HitRecord, attenuation *vec.Color, r_out *ray.Ray) bool {
+func (m *Metal) Scatter(r_in *ray.Ray, rec *HitRecord, r_out *ray.Ray) bool {
 	reflected := r_in.Direction().Reflected(rec.Normal)
 	reflected = vec.Add(reflected.Normalized(), vec.RandUnit().Scaled(m.Fuzz))
 	*r_out = ray.NewRay(rec.Point, reflected)
-	*attenuation = m.Albedo
+	rec.Color = m.Albedo
 
 	return vec.Dot(r_out.Direction(), rec.Normal) > 0
 }
@@ -49,8 +49,8 @@ type Dielectric struct {
 	RefractionIndex float64
 }
 
-func (d *Dielectric) Scatter(r_in *ray.Ray, rec *HitRecord, attenuation *vec.Color, r_out *ray.Ray) bool {
-	*attenuation = vec.Color{1.0, 1.0, 1.0}
+func (d *Dielectric) Scatter(r_in *ray.Ray, rec *HitRecord, r_out *ray.Ray) bool {
+	rec.Color = vec.Color{1.0, 1.0, 1.0}
 
 	var reflection_index float64
 

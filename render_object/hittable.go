@@ -11,6 +11,7 @@ type HitRecord struct {
 	Normal   vec.Vec3
 	T        float64
 	Material Material
+	Color    vec.Color
 	Front    bool
 }
 
