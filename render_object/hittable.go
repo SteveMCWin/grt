@@ -7,11 +7,11 @@ import (
 )
 
 type HitRecord struct {
-	Point  vec.Vec3
-	Normal vec.Vec3
-	T      float64
+	Point    vec.Vec3
+	Normal   vec.Vec3
+	T        float64
 	Material Material
-	Front  bool
+	Front    bool
 }
 
 func (hr *HitRecord) SetFaceNormal(r *ray.Ray, outward_normal vec.Vec3) {

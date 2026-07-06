@@ -27,23 +27,21 @@ func main() {
 
 	material_ground := render_object.Lambertian{Albedo: vec.Color{0.8, 0.8, 0.0}}
 	material_center := render_object.Lambertian{Albedo: vec.Color{0.1, 0.2, 0.5}}
-	// material_left := render_object.Dielectric{RefractionIndex: 1.5}
-	// material_bubble := render_object.Dielectric{RefractionIndex: 1.0/1.5}
-	// material_right := render_object.Metal{Albedo: vec.Color{0.8, 0.6, 0.2}, Fuzz:0.02}
+
 	// WORLD
 	world := render_object.HittableList{ Shapes: make([]render_object.Hittable, 0) }
 	world.Add(&render_object.Sphere{ Center: vec.Vec3{ 0.0, -100.5, -1.0}, Radius: 100.0, Material: &material_ground })
-	// world.Add(&render_object.Sphere{ Center: vec.Vec3{ 0.0,    0.0, -1.2}, Radius:   0.5, Material: &material_center })
-	// world.Add(&render_object.Sphere{ Center: vec.Vec3{-1.0,    0.0, -1.0}, Radius:   0.5, Material: &material_left })
-	// world.Add(&render_object.Sphere{ Center: vec.Vec3{-1.0,    0.0, -1.0}, Radius:   0.4, Material: &material_bubble })
-	// world.Add(&render_object.Sphere{ Center: vec.Vec3{ 1.0,    0.0, -1.0}, Radius:   0.5, Material: &material_right })
-	point_a := vec.Vec3{-0.5, 0.2, -1.2}
-	point_b := vec.Vec3{ 0.5, 0.2, -1.2}
-	point_c := vec.Vec3{-0.5, 1.2, -1.2}
-	point_d := vec.Vec3{ 0.5, 1.2, -1.2}
 
-	world.Add(&render_object.Triangle{A: point_a, B: point_b, C: point_c, Material: &material_center})
-	world.Add(&render_object.Triangle{A: point_c, B: point_b, C: point_d, Material: &material_center})
+	point_a := render_object.Vertex{ Position: vec.Vec3{-0.5, 0.2, -1.2}, Color: vec.Color{1.0, 0.0, 0.0} }
+	point_b := render_object.Vertex{ Position: vec.Vec3{ 0.5, 0.2, -1.2}, Color: vec.Color{0.0, 1.0, 0.0} }
+	point_c := render_object.Vertex{ Position: vec.Vec3{-0.5, 1.2, -1.2}, Color: vec.Color{0.0, 0.0, 1.0} }
+	point_d := render_object.Vertex{ Position: vec.Vec3{ 0.5, 1.2, -1.2}, Color: vec.Color{1.0, 1.0, 0.0} }
+
+	t1 := render_object.NewTriangle(point_a, point_b, point_c, &material_center)
+	t2 := render_object.NewTriangle(point_c, point_b, point_d, &material_center)
+
+	world.Add(t1)
+	world.Add(t2)
 
 	f, err := os.Create("img.ppm")
 	if err != nil {

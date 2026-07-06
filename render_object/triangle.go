@@ -4,55 +4,80 @@ import (
 	"grt/ray"
 	"grt/util"
 	"grt/vec"
-	// "log"
 )
 
-type Triangle struct {
-	A vec.Vec3
-	B vec.Vec3
-	C vec.Vec3
-
-	N vec.Vec3
-	Material Material
+type Vertex struct {
+	Position vec.Vec3
+	Color    vec.Color
+	Normal   vec.Vec3
+	TexCoord vec.Vec3
 }
 
-func (t *Triangle) Hit(r *ray.Ray, interval util.Interval, hit_record *HitRecord) bool {
+type Triangle struct {
+	A Vertex
+	B Vertex
+	C Vertex
 
-	vAC := t.A.To(t.C)
-	vAB := t.A.To(t.B)
-	vBC := t.B.To(t.C)
-	vCA := t.C.To(t.A)
+	Material    Material
+	PlaneNormal vec.Vec3
+}
 
-	N := vec.Cross(vAB, vAC).Normalized()
-	D := -vec.Dot(N, t.A)
+func NewTriangle(a, b, c Vertex, m Material) *Triangle {
+	vAC := a.Position.To(c.Position)
+	vAB := a.Position.To(b.Position)
+	planeNormal := vec.Cross(vAB, vAC).Normalized()
 
-	// l for length of ray, but usually labeled 't'
-	l := -(vec.Dot(N, r.Origin()) + D)/vec.Dot(N, r.Direction())
+	if a.Normal.Len() == 0 {
+		a.Normal = planeNormal
+		b.Normal = planeNormal
+		c.Normal = planeNormal
+	}
 
-	// Point where ray hits plane
-	P := r.At(l)
+	return &Triangle{
+		A: a,
+		B: b,
+		C: c,
+		Material: m,
+		PlaneNormal: vec.Cross(vAB, vAC).Normalized(),
+	}
+}
 
-	vAP := t.A.To(P)
-	vBP := t.B.To(P)
-	vCP := t.C.To(P)
+// Möller-Trumbore algorithm
+// https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle//moller-trumbore-ray-triangle-intersection.html
+func (tri *Triangle) Hit(r *ray.Ray, interval util.Interval, hit_record *HitRecord) bool {
 
-	// If intersection point isn't inside the triangle, it didn't hit
-	if (vec.Dot(N, vec.Cross(vAB, vAP)) <= 0 ||
-		vec.Dot(N, vec.Cross(vBC, vBP)) <= 0 ||
-		vec.Dot(N, vec.Cross(vCA, vCP)) <= 0) {
+	vAB := tri.A.Position.To(tri.B.Position)
+	vAC := tri.A.Position.To(tri.C.Position)
+	vP  := vec.Cross(r.Direction(), vAC)
+	det := vec.Dot(vAB, vP)
+
+	// if ray near parallel to plane, doesn't hit
+	if det < util.Small {
 		return false
 	}
 
-	if !interval.Surrounds(l) {
-		// log.Println("!interval.Surrounds(P.Len())")
+	invDet := 1.0/det
+	vT := vec.Subtract(r.Origin(), tri.A.Position)
+	v := vec.Dot(vT, vP) * invDet
+	if v < 0 || v > 1 {
 		return false
 	}
 
-	hit_record.T = l
-	hit_record.Point = P
-	outward_normal := N
-	hit_record.SetFaceNormal(r, outward_normal)
-	hit_record.Material = t.Material
+	vQ := vec.Cross(vT, vAB)
+	w := vec.Dot(r.Direction(), vQ) * invDet
+	if w < 0 || v + w > 1 {
+		return false
+	}
+
+	u := 1.0 - v - w
+	t := vec.Dot(vAC, vQ) * invDet
+
+	pointNormal := vec.Add(tri.A.Normal.Scaled(u), tri.B.Normal.Scaled(v), tri.C.Normal.Scaled(w))
+
+	hit_record.T = t
+	hit_record.Point = r.At(t)
+	hit_record.SetFaceNormal(r, pointNormal)
+	hit_record.Material = tri.Material
 
 	return true
 }

@@ -7,6 +7,7 @@ import (
 
 var NegInf = math.Inf(-1)
 var PosInf = math.Inf(1)
+var Small  = 1e-5
 
 type Interval struct {
 	Min float64
