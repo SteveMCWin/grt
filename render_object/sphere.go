@@ -1,16 +1,17 @@
 package render_object
 
 import (
+	"grt/ray"
+	"grt/util"
+	"grt/vec"
 	"math"
-	"tracer/ray"
-	"tracer/util"
-	"tracer/vec"
 )
 
 type Sphere struct {
-	Center vec.Vec3
-	Radius float64
+	Center   vec.Vec3
+	Radius   float64
 	Material Material
+	Texture  TexType
 }
 
 func (s *Sphere) Hit(r *ray.Ray, interval util.Interval, hit_record *HitRecord) bool {
@@ -34,9 +35,14 @@ func (s *Sphere) Hit(r *ray.Ray, interval util.Interval, hit_record *HitRecord) 
 		}
 	}
 
+	P := r.At(hit_record.T)
+	d := vec.Subtract(s.Center, P).Normalized()
+
+	hit_record.U = 0.5 + math.Atan2(d.Z(), d.X()) / 2.0*math.Pi
+	hit_record.V = 0.5 + math.Asin(d.Y()) / 2.0*math.Pi
 	hit_record.T = root
-	hit_record.Point = r.At(hit_record.T)
-	outward_normal := vec.Subtract(hit_record.Point, s.Center).Scaled(1.0/s.Radius)
+	hit_record.Point = P
+	outward_normal := vec.Subtract(hit_record.Point, s.Center).Scaled(1.0 / s.Radius)
 	hit_record.SetFaceNormal(r, outward_normal)
 	hit_record.Material = s.Material
 

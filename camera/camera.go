@@ -7,10 +7,10 @@ import (
 	"math/rand/v2"
 	"os"
 	"sync"
-	"tracer/ray"
-	"tracer/render_object"
-	"tracer/util"
-	"tracer/vec"
+	"grt/ray"
+	"grt/render_object"
+	"grt/util"
+	"grt/vec"
 )
 
 type Camera struct {

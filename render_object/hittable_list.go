@@ -1,8 +1,8 @@
 package render_object
 
 import (
-	"tracer/ray"
-	"tracer/util"
+	"grt/ray"
+	"grt/util"
 )
 
 type HittableList struct {
@@ -13,7 +13,7 @@ func (list *HittableList) Add(shape Hittable) {
 	list.Shapes = append(list.Shapes, shape)
 }
 
-func (list *HittableList) Hit(r *ray.Ray, interval util.Interval,hit_record *HitRecord) bool {
+func (list *HittableList) Hit(r *ray.Ray, interval util.Interval, hit_record *HitRecord) bool {
 	var rec HitRecord
 	hit_anything := false
 	closest_so_far := interval.Max

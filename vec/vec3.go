@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand/v2"
-	"tracer/util"
+	"grt/util"
 )
 
 type Vec3 [3]float64
@@ -35,6 +35,10 @@ func Subtract(v1 Vec3, rest ...Vec3) Vec3 {
 		res[2] -= v[2]
 	}
 	return res
+}
+
+func (v1 Vec3) To(v2 Vec3) Vec3 {
+	return Subtract(v2, v1)
 }
 
 func Add(v1 Vec3, rest ...Vec3) Vec3 {

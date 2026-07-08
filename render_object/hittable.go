@@ -1,17 +1,21 @@
 package render_object
 
 import (
-	"tracer/ray"
-	"tracer/util"
-	"tracer/vec"
+	"grt/ray"
+	"grt/util"
+	"grt/vec"
 )
 
 type HitRecord struct {
-	Point  vec.Vec3
-	Normal vec.Vec3
-	T      float64
-	Material Material
-	Front  bool
+	Point       vec.Vec3
+	Normal      vec.Vec3
+	T           float64
+	Material    Material
+	VertexColor vec.Color
+	Front       bool
+	U           float64
+	V           float64
+	ResultColor vec.Color
 }
 
 func (hr *HitRecord) SetFaceNormal(r *ray.Ray, outward_normal vec.Vec3) {

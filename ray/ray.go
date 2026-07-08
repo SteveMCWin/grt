@@ -1,8 +1,8 @@
 package ray
 
 import (
-	// "tracer/shapes"
-	"tracer/vec"
+	// "grt/shapes"
+	"grt/vec"
 )
 
 type Ray struct {

@@ -3,8 +3,8 @@ package render_object
 import (
 	"math"
 	"math/rand/v2"
-	"tracer/ray"
-	"tracer/vec"
+	"grt/ray"
+	"grt/vec"
 )
 
 type Material interface {
@@ -14,7 +14,7 @@ type Material interface {
 
 
 type Lambertian struct {
-	Albedo vec.Color
+	Texture TexType
 }
 
 func (l *Lambertian) Scatter(r_in *ray.Ray, rec *HitRecord, attenuation *vec.Color, r_out *ray.Ray) bool {
@@ -25,14 +25,14 @@ func (l *Lambertian) Scatter(r_in *ray.Ray, rec *HitRecord, attenuation *vec.Col
 	}
 
 	*r_out = ray.NewRay(rec.Point, scatter_direction)
-	*attenuation = l.Albedo
+	*attenuation = l.Texture.GetColor(rec)
 	return true
 }
 
 
 
 type Metal struct {
-	Albedo vec.Color
+	Texture TexType
 	Fuzz float64
 }
 
@@ -40,7 +40,7 @@ func (m *Metal) Scatter(r_in *ray.Ray, rec *HitRecord, attenuation *vec.Color, r
 	reflected := r_in.Direction().Reflected(rec.Normal)
 	reflected = vec.Add(reflected.Normalized(), vec.RandUnit().Scaled(m.Fuzz))
 	*r_out = ray.NewRay(rec.Point, reflected)
-	*attenuation = m.Albedo
+	*attenuation = m.Texture.GetColor(rec)
 
 	return vec.Dot(r_out.Direction(), rec.Normal) > 0
 }
@@ -50,6 +50,7 @@ type Dielectric struct {
 }
 
 func (d *Dielectric) Scatter(r_in *ray.Ray, rec *HitRecord, attenuation *vec.Color, r_out *ray.Ray) bool {
+	// TODO: i'd first have to experiment with this?
 	*attenuation = vec.Color{1.0, 1.0, 1.0}
 
 	var reflection_index float64

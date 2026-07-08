@@ -3,7 +3,7 @@ package vec
 import (
 	"fmt"
 	"math"
-	"tracer/util"
+	"grt/util"
 )
 
 type Color Vec3
