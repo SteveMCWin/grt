@@ -13,7 +13,7 @@ import (
 func main() {
 
 	aspect_ratio := 16.0/9.0
-	img_width := 600
+	img_width := 800
 	vfov := 40.0
 	samples_per_pixel := 25
 	max_depth := 30
@@ -25,8 +25,11 @@ func main() {
 
 	c := camera.NewCam(aspect_ratio, vfov, defocus_angle, focus_dist, img_width, samples_per_pixel, max_depth, camera_pos, camera_look_at, camera_up)
 
-	material_ground := render_object.Lambertian{Albedo: vec.Color{0.8, 0.8, 0.0}}
-	material_center := render_object.Lambertian{Albedo: vec.Color{0.1, 0.2, 0.5}}
+	ground_texture := &render_object.FlatColorProvider{ Color: vec.Color{0.8, 0.8, 0.0} }
+	triangle_texture := &render_object.DebugColorProvider{ Type: render_object.VertexColor }
+
+	material_ground := render_object.Lambertian{Texture: ground_texture}
+	triangle_material := render_object.Lambertian{Texture: triangle_texture}
 
 	// WORLD
 	world := render_object.HittableList{ Shapes: make([]render_object.Hittable, 0) }
@@ -37,8 +40,8 @@ func main() {
 	point_c := render_object.Vertex{ Position: vec.Vec3{-0.5, 1.2, -1.2}, Color: vec.Color{0.0, 0.0, 1.0} }
 	point_d := render_object.Vertex{ Position: vec.Vec3{ 0.5, 1.2, -1.2}, Color: vec.Color{1.0, 1.0, 0.0} }
 
-	t1 := render_object.NewTriangle(point_a, point_b, point_c, &material_center)
-	t2 := render_object.NewTriangle(point_c, point_b, point_d, &material_center)
+	t1 := render_object.NewTriangle(point_a, point_b, point_c, &triangle_material)
+	t2 := render_object.NewTriangle(point_c, point_b, point_d, &triangle_material)
 
 	world.Add(t1)
 	world.Add(t2)

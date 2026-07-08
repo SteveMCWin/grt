@@ -148,9 +148,10 @@ func (cam Camera) RayColor(r ray.Ray, depth int, shape render_object.Hittable) v
 	var rec render_object.HitRecord
 	if shape.Hit(&r, util.Interval{Min: 0.001, Max: util.PosInf}, &rec) {
 		var scattered ray.Ray
+		var attenuation vec.Color
 
-		if rec.Material.Scatter(&r, &rec, &scattered) {
-			return vec.Color(vec.Mul(vec.Vec3(rec.Color), vec.Vec3(cam.RayColor(scattered, depth-1, shape))))
+		if rec.Material.Scatter(&r, &rec, &attenuation, &scattered) {
+			return vec.Color(vec.Mul(vec.Vec3(attenuation), vec.Vec3(cam.RayColor(scattered, depth-1, shape))))
 		}
 
 		return vec.Color{0.0, 0.0, 0.0}
