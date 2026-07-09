@@ -1,12 +1,13 @@
 package main
 
 import (
+	"grt/camera"
+	"grt/data_loader"
+	"grt/render_object"
+	"grt/vec"
 	"log"
 	"os"
 	"time"
-	"grt/camera"
-	"grt/render_object"
-	"grt/vec"
 )
 
 
@@ -43,8 +44,14 @@ func main() {
 	t1 := render_object.NewTriangle(point_a, point_b, point_c, &triangle_material)
 	t2 := render_object.NewTriangle(point_c, point_b, point_d, &triangle_material)
 
+	teapot, err := data_loader.Load3DModel("models/teapot.obj")
+	if err != nil {
+		log.Println("Error loading file:", err)
+	}
+
 	world.Add(t1)
 	world.Add(t2)
+	world.Add(teapot)
 
 	f, err := os.Create("img.ppm")
 	if err != nil {
