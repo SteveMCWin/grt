@@ -2,9 +2,9 @@ package vec
 
 import (
 	"fmt"
+	"grt/util"
 	"math"
 	"math/rand/v2"
-	"grt/util"
 )
 
 type Vec3 [3]float64
@@ -82,6 +82,20 @@ func Negate(v *Vec3) {
 	v[2] *= -1.0
 }
 
+func (v Vec3) Negated() Vec3 {
+	return Vec3{-v[0], -v[1], -v[2]}
+}
+
+func Reciprocate(v *Vec3) {
+	v[0] = 1.0/v[0]
+	v[1] = 1.0/v[1]
+	v[2] = 1.0/v[2]
+}
+
+func (v Vec3) Reciprocated() Vec3 {
+	return Vec3{1.0 / v[0], 1.0 / v[1], 1.0 / v[2]}
+}
+
 func Reflect(v *Vec3, n Vec3) {
 	Subtract(*v, n.Scaled(2*Dot(*v, n)))
 }
@@ -139,7 +153,7 @@ func Cross(v1, v2 Vec3) Vec3 {
 }
 
 func Random() Vec3 {
-	return Vec3{rand.Float64()*2.0-1.0, rand.Float64()*2.0-1.0, rand.Float64()*2.0-1.0}
+	return Vec3{rand.Float64()*2.0 - 1.0, rand.Float64()*2.0 - 1.0, rand.Float64()*2.0 - 1.0}
 }
 
 func RandomRanged(min, max float64) Vec3 {

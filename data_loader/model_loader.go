@@ -13,11 +13,11 @@ import (
 )
 
 const (
-	OBJ = "obj"
+	OBJ = ".obj"
 )
 
 // TODO: Add material support from .mtl files
-func Load3DModel(filepath string) (*render_object.Model, error) {
+func Load3DModel(filepath string) (render_object.TriangleMesh, error) {
 
 	extension := path.Ext(filepath)
 
@@ -33,7 +33,7 @@ func Load3DModel(filepath string) (*render_object.Model, error) {
 	}
 }
 
-func loadOBJModel(filepath string) (*render_object.Model, error) {
+func loadOBJModel(filepath string) (render_object.TriangleMesh, error) {
 
 	modelFile, err := os.Open(filepath)
 	if err != nil {
@@ -43,7 +43,7 @@ func loadOBJModel(filepath string) (*render_object.Model, error) {
 	fileScanner := bufio.NewScanner(modelFile)
 	fileScanner.Split(bufio.ScanLines)
 
-	model := render_object.Model{}
+	mesh := render_object.TriangleMesh{}
 
 	vertex_positions := make([]vec.Vec3, 0)
 	vertex_normals  := make([]vec.Vec3, 0)
@@ -79,17 +79,18 @@ func loadOBJModel(filepath string) (*render_object.Model, error) {
 		parts := strings.Split(line, OBJ_DATA_SEP)
 		num_vertices := 3
 		vertices := make([]render_object.Vertex, num_vertices)
-		for i := 0; i < num_vertices; i++ {
+
+		for i := range num_vertices {
 			vertex_data := strings.Split(parts[i+1], OBJ_VERT_SEP)
 			posIdx, _ := strconv.Atoi(vertex_data[0])
-			vertices[i].Position = vertex_positions[posIdx]
+			vertices[i].Position = vertex_positions[posIdx-1]
 			if len(vertex_data) == 1 {
 				return
 			}
 
 			texIdx, err := strconv.Atoi(vertex_data[1])
 			if err == nil {
-				vertices[i].TexCoord = tex_coords[texIdx]
+				vertices[i].TexCoord = tex_coords[texIdx-1]
 			}
 
 			if len(vertex_data) == 2 {
@@ -97,13 +98,10 @@ func loadOBJModel(filepath string) (*render_object.Model, error) {
 			}
 
 			normIdx, _ := strconv.Atoi(vertex_data[2])
-			vertices[i].Normal = vertex_normals[normIdx]
+			vertices[i].Normal = vertex_normals[normIdx-1]
 		}
 
-		// TODO: replace this with a texture loader
-		tex := &render_object.FlatColorProvider{ Color: vec.Color{0.9, 0.9, 0.9} }
-		mat := render_object.Lambertian{Texture: tex}
-		model.Triangles = append(model.Triangles, *render_object.NewTriangle(vertices[0], vertices[1], vertices[2], &mat))
+		mesh = append(mesh, *render_object.NewTriangle(vertices[0], vertices[1], vertices[2], nil))
 	}
 
 	const (
@@ -122,7 +120,7 @@ func loadOBJModel(filepath string) (*render_object.Model, error) {
 			add_vertex_pos(line)
 		case vertex_norm_line:
 			add_vertex_norm(line)
-		// vertex_tex_line:
+		// case vertex_tex_line:
 		// 	add_vertex_tex(line)
 		case face_line:
 			add_triangle(line)
@@ -131,7 +129,7 @@ func loadOBJModel(filepath string) (*render_object.Model, error) {
 		}
 	}
 
-	fmt.Printf("Loaded %d positions, %d texture UVs, %d normals and produced %d triangles\n", len(vertex_positions), 0, len(vertex_normals), len(model.Triangles))
+	fmt.Printf("Loaded %d positions, %d texture UVs, %d normals and produced %d triangles\n", len(vertex_positions), 0, len(vertex_normals), len(mesh))
 
-	return &model, nil
+	return mesh, nil
 }

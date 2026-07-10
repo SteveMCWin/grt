@@ -75,6 +75,10 @@ func (tri *Triangle) Hit(r *ray.Ray, interval util.Interval, hit_record *HitReco
 	u := 1.0 - v - w
 	t := vec.Dot(vAC, vQ) * invDet
 
+	if !interval.Surrounds(t) {
+		return false
+	}
+
 	pointNormal := vec.Add(tri.A.Normal.Scaled(u), tri.B.Normal.Scaled(v), tri.C.Normal.Scaled(w))
 	vertexColor := vec.Add(vec.Vec3(tri.A.Color).Scaled(u), vec.Vec3(tri.B.Color).Scaled(v), vec.Vec3(tri.C.Color).Scaled(w))
 
