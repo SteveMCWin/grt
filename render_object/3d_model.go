@@ -36,9 +36,9 @@ func (m *Model) Hit(r *ray.Ray, interval util.Interval, hit_record *HitRecord) b
 	hit_anything := false
 	closest_so_far := interval.Max
 
+	transformed_ray := ray.NewRay(m.inverseMatrix.MultiplyPoint(r.Origin()), m.inverseMatrix.MultiplyDir(r.Direction()))
 	for _, triangle := range m.Mesh {
 		// transform the ray into model space
-		transformed_ray := ray.NewRay(m.inverseMatrix.MultiplyPoint(r.Origin()), m.inverseMatrix.MultiplyDir(r.Direction()))
 		if triangle.Hit(&transformed_ray, util.Interval{Min: interval.Min, Max: closest_so_far}, &rec) {
 			hit_anything = true
 			closest_so_far = rec.T
@@ -46,7 +46,13 @@ func (m *Model) Hit(r *ray.Ray, interval util.Interval, hit_record *HitRecord) b
 			hit_record.Material = m.Material
 
 			hit_record.Point = m.modelMatrix.MultiplyPoint(hit_record.Point)
-			worldNormal := m.inverseMatrix.Transposed().MultiplyDir(hit_record.Normal)
+
+			outwardObjNormal := hit_record.Normal
+			if !hit_record.Front {
+				outwardObjNormal = outwardObjNormal.Neg()
+			}
+
+			worldNormal := m.inverseMatrix.Transposed().MultiplyDir(outwardObjNormal)
 			hit_record.SetFaceNormal(r, worldNormal.Normalized())
 		}
 	}

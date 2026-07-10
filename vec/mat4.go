@@ -158,7 +158,7 @@ func ModelMatrix(position, rotation, scale Vec3) Mat4 {
 	matRotation := Vec3ToRotation(rotation)
 	matTranslation := Vec3ToTranslate(position)
 
-	return Multiply(matScale, matRotation, matTranslation)
+	return Multiply(matTranslation, matRotation, matScale)
 }
 
 func InverseModelMatrix(position, rotation, scale Vec3) Mat4 {

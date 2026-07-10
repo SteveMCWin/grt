@@ -18,11 +18,11 @@ type HitRecord struct {
 	ResultColor vec.Color
 }
 
-func (hr *HitRecord) SetFaceNormal(r *ray.Ray, outward_normal vec.Vec3) {
-	hr.Front = vec.Dot(r.Direction(), outward_normal) < 0
-	hr.Normal = outward_normal
-	if !hr.Front {
-		hr.Normal = hr.Normal.Scaled(-1.0)
+func (rec *HitRecord) SetFaceNormal(r *ray.Ray, outward_normal vec.Vec3) {
+	rec.Front = vec.Dot(r.Direction(), outward_normal) < 0
+	rec.Normal = outward_normal
+	if !rec.Front {
+		rec.Normal = rec.Normal.Scaled(-1.0)
 	}
 }
 
