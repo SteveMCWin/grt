@@ -7,6 +7,8 @@ import (
 	"math/rand/v2"
 	"os"
 	"sync"
+	"sync/atomic"
+	"time"
 	"grt/ray"
 	"grt/render_object"
 	"grt/util"
@@ -93,6 +95,24 @@ func (cam Camera) Render(stuff_to_render render_object.Hittable, w ...io.Writer)
 	buffer := make([]vec.Vec3, cam.ImageWidth*cam.imageHeight)
 	var wg sync.WaitGroup
 
+	totalPixels := cam.ImageWidth * cam.imageHeight
+	var completedPixels atomic.Int64
+
+	progressDone := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(300 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				done := completedPixels.Load()
+				fmt.Fprintf(os.Stderr, "\rRendered %d/%d pixels (%.1f%%)", done, totalPixels, 100*float64(done)/float64(totalPixels))
+			case <-progressDone:
+				return
+			}
+		}
+	}()
+
 	for j := range cam.imageHeight {
 		for i := range cam.ImageWidth {
 			wg.Add(1)
@@ -104,11 +124,14 @@ func (cam Camera) Render(stuff_to_render render_object.Hittable, w ...io.Writer)
 					col = vec.Add(col, vec.Vec3(cam.RayColor(r, cam.MaxDepth, stuff_to_render)))
 				}
 				buffer[j*cam.ImageWidth+i] = col.Scaled(cam.samplesScale)
+				completedPixels.Add(1)
 			}(i, j)
 		}
 	}
 
 	wg.Wait()
+	close(progressDone)
+	fmt.Fprintf(os.Stderr, "\rRendered %d/%d pixels (100.0%%)\n", totalPixels, totalPixels)
 
 	if len(w) < 1 {
 		w[0] = os.Stdout

@@ -102,17 +102,17 @@ func Multiply(multiplicators ...Mat4) Mat4 {
 	multiplicators = multiplicators[1:]
 
 	for _, mul := range multiplicators {
-
-		for i := range DIM {
-			for j := range DIM {
+		next := Mat4{}
+		for c := range DIM {
+			for r := range DIM {
 				sum := 0.0
 				for k := range DIM {
-					sum += res[k][i] * mul[j][k]
+					sum += res[k][r] * mul[c][k]
 				}
-				res[i][j] = sum
+				next[c][r] = sum
 			}
 		}
-
+		res = next
 	}
 
 	return res
@@ -192,12 +192,12 @@ func (m Mat4) MultiplyPoint(v Vec3) Vec3 {
 	res := [4]float64{}
 	v4 := [4]float64{v[0], v[1], v[2], 1.0}
 
-	for i := range DIM {
+	for r := range DIM {
 		sum := 0.0
-		for j := range DIM {
-			sum += m[i][j] * v4[j]
+		for c := range DIM {
+			sum += m[c][r] * v4[c]
 		}
-		res[i] = sum
+		res[r] = sum
 	}
 
 	return Vec3{res[0], res[1], res[2]}
@@ -207,12 +207,12 @@ func (m Mat4) MultiplyDir(v Vec3) Vec3 {
 	res := [4]float64{}
 	v4 := [4]float64{v[0], v[1], v[2], 0.0}
 
-	for i := range DIM {
+	for r := range DIM {
 		sum := 0.0
-		for j := range DIM {
-			sum += m[i][j] * v4[j]
+		for c := range DIM {
+			sum += m[c][r] * v4[c]
 		}
-		res[i] = sum
+		res[r] = sum
 	}
 
 	return Vec3{res[0], res[1], res[2]}
