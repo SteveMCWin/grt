@@ -152,6 +152,38 @@ func Cross(v1, v2 Vec3) Vec3 {
 	return res
 }
 
+func MinCoords(v1, v2 Vec3) Vec3 {
+	return Vec3{
+		math.Min(v1.X(), v2.X()),
+		math.Min(v1.Y(), v2.Y()),
+		math.Min(v1.Z(), v2.Z()),
+	}
+}
+
+func MaxCoords(v1, v2 Vec3) Vec3 {
+	return Vec3{
+		math.Max(v1.X(), v2.X()),
+		math.Max(v1.Y(), v2.Y()),
+		math.Max(v1.Z(), v2.Z()),
+	}
+}
+
+func LargestVec3() Vec3 {
+	return Vec3 {
+		util.PosInf,
+		util.PosInf,
+		util.PosInf,
+	}
+}
+
+func SmallestVec3() Vec3 {
+	return Vec3 {
+		util.NegInf,
+		util.NegInf,
+		util.NegInf,
+	}
+}
+
 func Random() Vec3 {
 	return Vec3{rand.Float64()*2.0 - 1.0, rand.Float64()*2.0 - 1.0, rand.Float64()*2.0 - 1.0}
 }

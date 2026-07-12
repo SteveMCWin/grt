@@ -20,6 +20,8 @@ type Triangle struct {
 
 	Material    Material
 	PlaneNormal vec.Vec3
+
+	center vec.Vec3
 }
 
 func NewTriangle(a, b, c Vertex, m Material) *Triangle {
@@ -39,6 +41,7 @@ func NewTriangle(a, b, c Vertex, m Material) *Triangle {
 		C:           c,
 		Material:    m,
 		PlaneNormal: vec.Cross(vAB, vAC).Normalized(),
+		center: vec.Add(a.Position, b.Position, c.Position).Scaled(1.0/3.0),
 	}
 }
 
@@ -89,4 +92,8 @@ func (tri *Triangle) Hit(r *ray.Ray, interval util.Interval, hit_record *HitReco
 	hit_record.VertexColor = vec.Color(vertexColor)
 
 	return true
+}
+
+func (tri *Triangle) Center() vec.Vec3 {
+	return tri.center
 }
