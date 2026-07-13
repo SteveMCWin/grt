@@ -1,7 +1,10 @@
 package render_object
 
 import (
+	"grt/ray"
+	"grt/util"
 	"grt/vec"
+	"math"
 )
 
 type BVHTree struct {
@@ -10,17 +13,15 @@ type BVHTree struct {
 	TriangleIdxs []int
 	RootNodeIdx  int
 	NodesUsed    int
-	MaxDepth     int
 }
 
-func NewBVHTree(model Model, maxDepth int) *BVHTree {
+func NewBVHTree(model Model) *BVHTree {
 	tree := BVHTree{
 		Triangles:    model.Mesh,
 		TriangleIdxs: make([]int, len(model.Mesh)),
 		Nodes:        make([]BVHNode, 2*len(model.Mesh)-1),
 		RootNodeIdx:  0,
 		NodesUsed:    1,
-		MaxDepth:     maxDepth,
 	}
 
 	for i := range tree.TriangleIdxs {
@@ -110,4 +111,66 @@ func (node *BVHNode) Subdivide(tris []Triangle, triIdxs []int, allNodes []BVHNod
 
 	allNodes[leftChild].Subdivide(tris, triIdxs, allNodes, nodesUsed)
 	allNodes[rightChild].Subdivide(tris, triIdxs, allNodes, nodesUsed)
+}
+
+func (tree *BVHTree) IntersectBVHTree(r *ray.Ray, interval util.Interval, hit_record *HitRecord, nodeIdx int) bool {
+
+
+	node := tree.Nodes[nodeIdx]
+	if !node.Hit(r, interval, hit_record) {
+		return false
+	}
+
+	if node.IsLeaf() {
+
+		var rec HitRecord
+		hit_anything := false
+		closest_so_far := interval.Max
+
+		for i := range node.NumTris {
+			if tree.Triangles[tree.TriangleIdxs[node.FirstPrim+i]].Hit(r, util.Interval{Min: interval.Min, Max: closest_so_far}, &rec) {
+				hit_anything = true
+				closest_so_far = rec.T
+				*hit_record = rec
+			}
+		}
+		return hit_anything
+	} 
+
+	// didn't hit anything so we don't need to update the interval here
+	hitLeft := tree.IntersectBVHTree(r, interval, hit_record, node.LeftChild)
+
+	rightInterval := interval
+	if hitLeft {
+		rightInterval.Max = hit_record.T
+	}
+
+	hitRight := tree.IntersectBVHTree(r, rightInterval, hit_record, node.LeftChild+1)
+
+	return hitLeft || hitRight
+}
+
+func (tree *BVHTree) Hit(r *ray.Ray, interval util.Interval, hit_record *HitRecord) bool {
+	nodeIdx := tree.RootNodeIdx
+
+	return tree.IntersectBVHTree(r, interval, hit_record, nodeIdx)
+}
+
+func (node *BVHNode) Hit(r *ray.Ray, interval util.Interval, hit_record *HitRecord) bool {
+	tx1 := (node.AABBMin.X()-r.Origin().X()) / r.Direction().X()
+	tx2 := (node.AABBMax.X()-r.Origin().X()) / r.Direction().X()
+	tmin := math.Min(tx1, tx2)
+	tmax := math.Max(tx1, tx2)
+
+	ty1 := (node.AABBMin.Y()-r.Origin().Y()) / r.Direction().Y()
+	ty2 := (node.AABBMax.Y()-r.Origin().Y()) / r.Direction().Y()
+	tmin = math.Max(tmin, min(ty1, ty2))
+	tmax = math.Min(tmax, max(ty1, ty2))
+
+	tz1 := (node.AABBMin.Z()-r.Origin().Z()) / r.Direction().Z()
+	tz2 := (node.AABBMax.Z()-r.Origin().Z()) / r.Direction().Z()
+	tmin = math.Max(tmin, min(tz1, tz2))
+	tmax = math.Min(tmax, max(tz1, tz2))
+
+	return tmax >= tmin && tmin < interval.Max && tmax > 0
 }

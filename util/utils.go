@@ -33,6 +33,11 @@ func (i Interval) Clamp(f float64) float64 {
 	return max(i.Min, min(i.Max, f))
 }
 
+func (i Interval) Expand(delta float64) Interval {
+	padding := delta/2.0
+	return Interval{Min: i.Min-padding, Max: i.Max+padding}
+}
+
 func DegToRad(deg float64) float64 {
 	return deg * math.Pi / 180.0
 }
