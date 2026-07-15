@@ -15,12 +15,15 @@ type Model struct {
 	Rotation vec.Vec3
 	Scale    vec.Vec3
 
+	BVHTree *BVHTree
+
 	inverseMatrix vec.Mat4
 	modelMatrix   vec.Mat4
 }
 
 func NewModel(mesh TriangleMesh, material Material, position, rotation, scale vec.Vec3) Model {
-	return Model{
+
+	m := Model{
 		Mesh:          mesh,
 		Material:      material,
 		Position:      position,
@@ -29,33 +32,26 @@ func NewModel(mesh TriangleMesh, material Material, position, rotation, scale ve
 		modelMatrix:   vec.ModelMatrix(position, rotation, scale),
 		inverseMatrix: vec.InverseModelMatrix(position, rotation, scale),
 	}
+
+	m.BVHTree = NewBVHTree(m)
+
+	return m
 }
 
 func (m *Model) Hit(r *ray.Ray, interval util.Interval, hit_record *HitRecord) bool {
-	var rec HitRecord
-	hit_anything := false
-	closest_so_far := interval.Max
-
 	transformed_ray := ray.NewRay(m.inverseMatrix.MultiplyPoint(r.Origin()), m.inverseMatrix.MultiplyDir(r.Direction()))
-	for _, triangle := range m.Mesh {
-		// transform the ray into model space
-		if triangle.Hit(&transformed_ray, util.Interval{Min: interval.Min, Max: closest_so_far}, &rec) {
-			hit_anything = true
-			closest_so_far = rec.T
-			*hit_record = rec
-			hit_record.Material = m.Material
 
-			hit_record.Point = m.modelMatrix.MultiplyPoint(hit_record.Point)
+	hit_anything := m.BVHTree.Intersect(&transformed_ray, interval, hit_record, m.BVHTree.RootNodeIdx)
+	hit_record.Material = m.Material
+	hit_record.Point = m.modelMatrix.MultiplyPoint(hit_record.Point)
 
-			outwardObjNormal := hit_record.Normal
-			if !hit_record.Front {
-				outwardObjNormal = outwardObjNormal.Neg()
-			}
-
-			worldNormal := m.inverseMatrix.Transposed().MultiplyDir(outwardObjNormal)
-			hit_record.SetFaceNormal(r, worldNormal.Normalized())
-		}
+	outwardObjNormal := hit_record.Normal
+	if !hit_record.Front {
+		outwardObjNormal = outwardObjNormal.Neg()
 	}
+
+	worldNormal := m.inverseMatrix.Transposed().MultiplyDir(outwardObjNormal)
+	hit_record.SetFaceNormal(r, worldNormal.Normalized())
 
 	return hit_anything
 }

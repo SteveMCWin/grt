@@ -92,10 +92,10 @@ func NewCam(aspect_ratio, vfov, defocus_angle, focus_dist float64, image_width, 
 }
 
 func (cam Camera) Render(stuff_to_render render_object.Hittable, w ...io.Writer) {
-	buffer := make([]vec.Vec3, cam.ImageWidth*cam.imageHeight)
+	totalPixels := cam.ImageWidth * cam.imageHeight
+	buffer := make([]vec.Vec3, totalPixels)
 	var wg sync.WaitGroup
 
-	totalPixels := cam.ImageWidth * cam.imageHeight
 	var completedPixels atomic.Int64
 
 	progressDone := make(chan struct{})
@@ -172,6 +172,10 @@ func (cam Camera) RayColor(r ray.Ray, depth int, shape render_object.Hittable) v
 	if shape.Hit(&r, util.Interval{Min: 0.001, Max: util.PosInf}, &rec) {
 		var scattered ray.Ray
 		var attenuation vec.Color
+
+		if rec.Material == nil {
+			panic("No material!!!")
+		}
 
 		if rec.Material.Scatter(&r, &rec, &attenuation, &scattered) {
 			return vec.Color(vec.Mul(vec.Vec3(attenuation), vec.Vec3(cam.RayColor(scattered, depth-1, shape))))

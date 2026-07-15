@@ -47,9 +47,7 @@ func main() {
 
 	teapotModel := render_object.NewModel(teapotMesh, teapot_material, teapotPosition, teapotRotation, teapotScale)
 
-	teapotBVH := render_object.NewBVHTree(teapotModel)
-
-	world.Add(teapotBVH)
+	world.Add(&teapotModel)
 
 	f, err := os.Create("img.ppm")
 	if err != nil {

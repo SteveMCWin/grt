@@ -28,7 +28,8 @@ func NewBVHTree(model Model) *BVHTree {
 		tree.TriangleIdxs[i] = int(i)
 	}
 
-	tree.Nodes[tree.RootNodeIdx].UpdateBounds(tree.Triangles)
+	tree.Nodes[tree.RootNodeIdx].NumTris = len(model.Mesh)
+	tree.Nodes[tree.RootNodeIdx].UpdateBounds(tree.Triangles, tree.TriangleIdxs)
 	tree.Nodes[tree.RootNodeIdx].Subdivide(tree.Triangles, tree.TriangleIdxs, tree.Nodes, &tree.NodesUsed)
 
 	return &tree
@@ -46,18 +47,19 @@ func (node *BVHNode) IsLeaf() bool {
 	return node.NumTris > 0
 }
 
-func (node *BVHNode) UpdateBounds(allTris []Triangle) {
+func (node *BVHNode) UpdateBounds(allTris []Triangle, triIdxs []int) {
 	node.AABBMin = vec.LargestVec3()
 	node.AABBMax = vec.SmallestVec3()
 	firstTri := node.FirstPrim
 	for  i := range node.NumTris {
-		node.AABBMin = vec.MinCoords(node.AABBMin, allTris[firstTri+i].A.Position)
-		node.AABBMin = vec.MinCoords(node.AABBMin, allTris[firstTri+i].B.Position)
-		node.AABBMin = vec.MinCoords(node.AABBMin, allTris[firstTri+i].C.Position)
+		tri := allTris[triIdxs[firstTri+i]]
+		node.AABBMin = vec.MinCoords(node.AABBMin, tri.A.Position)
+		node.AABBMin = vec.MinCoords(node.AABBMin, tri.B.Position)
+		node.AABBMin = vec.MinCoords(node.AABBMin, tri.C.Position)
 
-		node.AABBMax = vec.MaxCoords(node.AABBMax, allTris[firstTri+i].A.Position)
-		node.AABBMax = vec.MaxCoords(node.AABBMax, allTris[firstTri+i].B.Position)
-		node.AABBMax = vec.MaxCoords(node.AABBMax, allTris[firstTri+i].C.Position)
+		node.AABBMax = vec.MaxCoords(node.AABBMax, tri.A.Position)
+		node.AABBMax = vec.MaxCoords(node.AABBMax, tri.B.Position)
+		node.AABBMax = vec.MaxCoords(node.AABBMax, tri.C.Position)
 	}
 }
 
@@ -106,15 +108,14 @@ func (node *BVHNode) Subdivide(tris []Triangle, triIdxs []int, allNodes []BVHNod
 	allNodes[rightChild].NumTris = node.NumTris - leftCount
 	node.NumTris = 0
 
-	allNodes[leftChild].UpdateBounds(tris)
-	allNodes[rightChild].UpdateBounds(tris)
+	allNodes[leftChild].UpdateBounds(tris, triIdxs)
+	allNodes[rightChild].UpdateBounds(tris, triIdxs)
 
 	allNodes[leftChild].Subdivide(tris, triIdxs, allNodes, nodesUsed)
 	allNodes[rightChild].Subdivide(tris, triIdxs, allNodes, nodesUsed)
 }
 
-func (tree *BVHTree) IntersectBVHTree(r *ray.Ray, interval util.Interval, hit_record *HitRecord, nodeIdx int) bool {
-
+func (tree *BVHTree) Intersect(r *ray.Ray, interval util.Interval, hit_record *HitRecord, nodeIdx int) bool {
 
 	node := tree.Nodes[nodeIdx]
 	if !node.Hit(r, interval, hit_record) {
@@ -123,29 +124,27 @@ func (tree *BVHTree) IntersectBVHTree(r *ray.Ray, interval util.Interval, hit_re
 
 	if node.IsLeaf() {
 
-		var rec HitRecord
 		hit_anything := false
 		closest_so_far := interval.Max
 
 		for i := range node.NumTris {
-			if tree.Triangles[tree.TriangleIdxs[node.FirstPrim+i]].Hit(r, util.Interval{Min: interval.Min, Max: closest_so_far}, &rec) {
+			if tree.Triangles[tree.TriangleIdxs[node.FirstPrim+i]].Hit(r, util.Interval{Min: interval.Min, Max: closest_so_far}, hit_record) {
 				hit_anything = true
-				closest_so_far = rec.T
-				*hit_record = rec
+				closest_so_far = hit_record.T
 			}
 		}
 		return hit_anything
 	} 
 
 	// didn't hit anything so we don't need to update the interval here
-	hitLeft := tree.IntersectBVHTree(r, interval, hit_record, node.LeftChild)
+	hitLeft := tree.Intersect(r, interval, hit_record, node.LeftChild)
 
 	rightInterval := interval
 	if hitLeft {
 		rightInterval.Max = hit_record.T
 	}
 
-	hitRight := tree.IntersectBVHTree(r, rightInterval, hit_record, node.LeftChild+1)
+	hitRight := tree.Intersect(r, rightInterval, hit_record, node.LeftChild+1)
 
 	return hitLeft || hitRight
 }
@@ -153,7 +152,7 @@ func (tree *BVHTree) IntersectBVHTree(r *ray.Ray, interval util.Interval, hit_re
 func (tree *BVHTree) Hit(r *ray.Ray, interval util.Interval, hit_record *HitRecord) bool {
 	nodeIdx := tree.RootNodeIdx
 
-	return tree.IntersectBVHTree(r, interval, hit_record, nodeIdx)
+	return tree.Intersect(r, interval, hit_record, nodeIdx)
 }
 
 func (node *BVHNode) Hit(r *ray.Ray, interval util.Interval, hit_record *HitRecord) bool {
