@@ -12,7 +12,6 @@ import (
 
 
 func main() {
-
 	aspect_ratio := 16.0/9.0
 	img_width := 800
 	vfov := 40.0
@@ -26,11 +25,11 @@ func main() {
 
 	c := camera.NewCam(aspect_ratio, vfov, defocus_angle, focus_dist, img_width, samples_per_pixel, max_depth, camera_pos, camera_look_at, camera_up)
 
-	ground_texture := &render_object.FlatColorProvider{ Color: vec.Color{0.8, 0.8, 0.0} }
-	teapot_texture := &render_object.FlatColorProvider{ Color: vec.Color{ 0.933, 0.945, 0.940 } }
+	groundTexture := &render_object.FlatColorProvider{ Color: vec.Color{0.8, 0.8, 0.0} }
+	teapotTexture := &render_object.FlatColorProvider{ Color: vec.Color{ 0.933, 0.945, 0.940 } }
 
-	material_ground := &render_object.Lambertian{Texture: ground_texture}
-	teapot_material := &render_object.Lambertian{Texture: teapot_texture}
+	material_ground := &render_object.Lambertian{Texture: groundTexture}
+	teapotMaterial := &render_object.Lambertian{Texture: teapotTexture}
 
 	// WORLD
 	world := render_object.HittableList{ Shapes: make([]render_object.Hittable, 0) }
@@ -45,16 +44,16 @@ func main() {
 	teapotRotation := vec.Vec3{0.0, 3.0,  0.0}
 	teapotScale    := vec.Vec3{1.0, 1.0, 1.0}
 
-	teapotModel := render_object.NewModel(teapotMesh, teapot_material, teapotPosition, teapotRotation, teapotScale)
+	teapotModel := render_object.NewModel(teapotMesh, teapotMaterial, teapotPosition, teapotRotation, teapotScale)
 
 	world.Add(&teapotModel)
 
-	f, err := os.Create("img.ppm")
+	outputFile, err := os.Create("img.ppm")
 	if err != nil {
 		panic(err)
 	}
 
 	start_time := time.Now()
-	c.Render(&world, f)
+	c.Render(&world, outputFile)
 	log.Println("Time to render:", time.Since(start_time))
 }

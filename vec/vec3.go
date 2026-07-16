@@ -55,6 +55,10 @@ func Mul(v1, v2 Vec3) Vec3 {
 	return Vec3{v1[0] * v2[0], v1[1] * v2[1], v1[2] * v2[2]}
 }
 
+func (v Vec3) Inverted() Vec3 {
+	return Vec3{1.0 / v[0], 1.0 / v[1], 1.0 / v[2]}
+}
+
 func (v Vec3) Scaled(f float64) Vec3 {
 	v[0] *= f
 	v[1] *= f
@@ -87,9 +91,9 @@ func (v Vec3) Negated() Vec3 {
 }
 
 func Reciprocate(v *Vec3) {
-	v[0] = 1.0/v[0]
-	v[1] = 1.0/v[1]
-	v[2] = 1.0/v[2]
+	v[0] = 1.0 / v[0]
+	v[1] = 1.0 / v[1]
+	v[2] = 1.0 / v[2]
 }
 
 func (v Vec3) Reciprocated() Vec3 {
@@ -169,7 +173,7 @@ func MaxCoords(v1, v2 Vec3) Vec3 {
 }
 
 func LargestVec3() Vec3 {
-	return Vec3 {
+	return Vec3{
 		util.PosInf,
 		util.PosInf,
 		util.PosInf,
@@ -177,7 +181,7 @@ func LargestVec3() Vec3 {
 }
 
 func SmallestVec3() Vec3 {
-	return Vec3 {
+	return Vec3{
 		util.NegInf,
 		util.NegInf,
 		util.NegInf,

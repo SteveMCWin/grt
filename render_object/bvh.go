@@ -118,7 +118,7 @@ func (node *BVHNode) Subdivide(tris []Triangle, triIdxs []int, allNodes []BVHNod
 func (tree *BVHTree) Intersect(r *ray.Ray, interval util.Interval, hit_record *HitRecord, nodeIdx int) bool {
 
 	node := tree.Nodes[nodeIdx]
-	if !node.Hit(r, interval, hit_record) {
+	if !node.Intersect(r, interval) {
 		return false
 	}
 
@@ -149,25 +149,20 @@ func (tree *BVHTree) Intersect(r *ray.Ray, interval util.Interval, hit_record *H
 	return hitLeft || hitRight
 }
 
-func (tree *BVHTree) Hit(r *ray.Ray, interval util.Interval, hit_record *HitRecord) bool {
-	nodeIdx := tree.RootNodeIdx
-
-	return tree.Intersect(r, interval, hit_record, nodeIdx)
-}
-
-func (node *BVHNode) Hit(r *ray.Ray, interval util.Interval, hit_record *HitRecord) bool {
-	tx1 := (node.AABBMin.X()-r.Origin().X()) / r.Direction().X()
-	tx2 := (node.AABBMax.X()-r.Origin().X()) / r.Direction().X()
+func (node *BVHNode) Intersect(r *ray.Ray, interval util.Interval) bool {
+	invertedRayDir := r.InvertedDir()
+	tx1 := (node.AABBMin.X()-r.Origin().X()) * invertedRayDir.X()
+	tx2 := (node.AABBMax.X()-r.Origin().X()) * invertedRayDir.X()
 	tmin := math.Min(tx1, tx2)
 	tmax := math.Max(tx1, tx2)
 
-	ty1 := (node.AABBMin.Y()-r.Origin().Y()) / r.Direction().Y()
-	ty2 := (node.AABBMax.Y()-r.Origin().Y()) / r.Direction().Y()
+	ty1 := (node.AABBMin.Y()-r.Origin().Y()) * invertedRayDir.Y()
+	ty2 := (node.AABBMax.Y()-r.Origin().Y()) * invertedRayDir.Y()
 	tmin = math.Max(tmin, min(ty1, ty2))
 	tmax = math.Min(tmax, max(ty1, ty2))
 
-	tz1 := (node.AABBMin.Z()-r.Origin().Z()) / r.Direction().Z()
-	tz2 := (node.AABBMax.Z()-r.Origin().Z()) / r.Direction().Z()
+	tz1 := (node.AABBMin.Z()-r.Origin().Z()) * invertedRayDir.Z()
+	tz2 := (node.AABBMax.Z()-r.Origin().Z()) * invertedRayDir.Z()
 	tmin = math.Max(tmin, min(tz1, tz2))
 	tmax = math.Min(tmax, max(tz1, tz2))
 
