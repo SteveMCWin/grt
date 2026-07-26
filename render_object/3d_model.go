@@ -4,6 +4,7 @@ import (
 	"grt/ray"
 	"grt/util"
 	"grt/vec"
+	"log"
 )
 
 type TriangleMesh []Triangle
@@ -34,6 +35,7 @@ func NewModel(mesh TriangleMesh, material Material, position, rotation, scale ve
 	}
 
 	m.BVHTree = NewBVHTree(m)
+	log.Println("Teapot bvh tree has this many nodes:", len(m.BVHTree.Nodes))
 
 	return m
 }

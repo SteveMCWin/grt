@@ -44,7 +44,9 @@ func main() {
 	teapotRotation := vec.Vec3{0.0, 3.0,  0.0}
 	teapotScale    := vec.Vec3{1.0, 1.0, 1.0}
 
+	log.Println("Making BVH...")
 	teapotModel := render_object.NewModel(teapotMesh, teapotMaterial, teapotPosition, teapotRotation, teapotScale)
+	log.Println("Made BVH successfully!")
 
 	world.Add(&teapotModel)
 

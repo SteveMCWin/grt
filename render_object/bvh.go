@@ -8,7 +8,7 @@ import (
 )
 
 type BVHTree struct {
-	Nodes        []BVHNode // NOTE: should actually be an interface, but I'll figure out what the interface should be later on
+	Nodes        []BVHNode
 	Triangles    []Triangle
 	TriangleIdxs []int
 	RootNodeIdx  int
@@ -35,9 +35,23 @@ func NewBVHTree(model Model) *BVHTree {
 	return &tree
 }
 
+type AABB struct {
+	AABBMin vec.Vec3
+	AABBMax vec.Vec3
+}
+
+func (aabb *AABB) GrowToInclude(p vec.Vec3) {
+	aabb.AABBMin = vec.MinCoords(aabb.AABBMin, p)
+	aabb.AABBMax = vec.MaxCoords(aabb.AABBMax, p)
+}
+
+func (aabb *AABB) Area() float64 {
+	e := vec.Subtract(aabb.AABBMax, aabb.AABBMin)
+	return e.X()*e.Y() + e.Y()*e.Z() + e.X()*e.Z()
+}
+
 type BVHNode struct {
-	AABBMin    vec.Vec3
-	AABBMax    vec.Vec3
+	AABB
 	LeftChild  int
 	FirstPrim  int
 	NumTris    int
@@ -63,22 +77,61 @@ func (node *BVHNode) UpdateBounds(allTris []Triangle, triIdxs []int) {
 	}
 }
 
+func evaluateSAH(node *BVHNode, axis int, pos float64, tris []Triangle, triIdxs []int) float64 {
+	leftBox := AABB{
+		AABBMin: vec.LargestVec3(),
+		AABBMax: vec.SmallestVec3(),
+	}
+	rightBox := leftBox
+	leftCount := 0
+	rightCount := 0
+
+	for i := range node.NumTris {
+		tri := tris[triIdxs[node.FirstPrim + i]]
+		if tri.center[axis] < pos {
+			leftCount++
+			leftBox.GrowToInclude(tri.A.Position)
+			leftBox.GrowToInclude(tri.B.Position)
+			leftBox.GrowToInclude(tri.C.Position)
+		} else {
+			rightCount++
+			rightBox.GrowToInclude(tri.A.Position)
+			rightBox.GrowToInclude(tri.B.Position)
+			rightBox.GrowToInclude(tri.C.Position)
+		}
+	}
+
+	cost := float64(leftCount) * leftBox.Area() + float64(rightCount) * rightBox.Area()
+	if cost > 0 {
+		return cost
+	}
+	return util.PosInf
+}
+
 func (node *BVHNode) Subdivide(tris []Triangle, triIdxs []int, allNodes []BVHNode, nodesUsed *int) {
-	if node.NumTris <= 2 {
+	bestAxis := -1
+	bestPos := 0.0
+	bestCost := util.PosInf
+	for axis := range 3 {
+		for i := range node.NumTris {
+			tri := tris[triIdxs[node.FirstPrim + i]]
+			candidatePos := tri.center[axis]
+			cost := evaluateSAH(node, axis, candidatePos, tris, triIdxs)
+			if cost < bestCost {
+				bestPos = candidatePos
+				bestAxis = axis
+				bestCost = cost
+			}
+		}
+	}
+
+	parentCost := float64(node.NumTris) * node.AABB.Area()
+	if bestCost >= parentCost {
 		return
 	}
 
-	// determine spllit axis
-	diff := vec.Subtract(node.AABBMax, node.AABBMin)
-	axis := 0
-	if diff.X() < diff.Y() {
-		axis = 1
-	}
-	if diff[axis] < diff.Z() {
-		axis = 2
-	}
-
-	splitPos := node.AABBMin[axis] + 0.5*diff[axis]
+	axis := bestAxis
+	splitPos := bestPos
 
 	i := node.FirstPrim
 	j := i + node.NumTris-1
@@ -116,40 +169,55 @@ func (node *BVHNode) Subdivide(tris []Triangle, triIdxs []int, allNodes []BVHNod
 }
 
 func (tree *BVHTree) Intersect(r *ray.Ray, interval util.Interval, hit_record *HitRecord, nodeIdx int) bool {
-
 	node := tree.Nodes[nodeIdx]
-	if !node.Intersect(r, interval) {
-		return false
-	}
+	stack := make([]BVHNode, 0)
+	hit_anything := false
 
-	if node.IsLeaf() {
+	for {
+		if node.IsLeaf() && node.Intersect(r, interval) < util.PosInf {
+			closest_so_far := interval.Max
 
-		hit_anything := false
-		closest_so_far := interval.Max
+			for i := range node.NumTris {
+				if tree.Triangles[tree.TriangleIdxs[node.FirstPrim+i]].Hit(r, util.Interval{Min: interval.Min, Max: closest_so_far}, hit_record) {
+					hit_anything = true
+					closest_so_far = hit_record.T
+					interval.Max = hit_record.T
+				}
+			}
 
-		for i := range node.NumTris {
-			if tree.Triangles[tree.TriangleIdxs[node.FirstPrim+i]].Hit(r, util.Interval{Min: interval.Min, Max: closest_so_far}, hit_record) {
-				hit_anything = true
-				closest_so_far = hit_record.T
+			if len(stack) <= 0 {
+				return hit_anything
+			} else {
+				node = stack[len(stack)-1]
+				stack = stack[:len(stack)-1]
+			}
+			continue
+		}
+		child1 := tree.Nodes[node.LeftChild]
+		child2 := tree.Nodes[node.LeftChild+1]
+		dist1 := child1.Intersect(r, interval)
+		dist2 := child2.Intersect(r, interval)
+		if dist1 > dist2 {
+			dist1, dist2 = dist2, dist1
+			child1, child2 = child2, child1
+		}
+
+		if dist1 == util.PosInf {
+			if len(stack) <= 0 {
+				return hit_anything
+			}
+			node = stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+		} else {
+			node = child1
+			if dist2 != util.PosInf {
+				stack = append(stack, child2)
 			}
 		}
-		return hit_anything
-	} 
-
-	// didn't hit anything so we don't need to update the interval here
-	hitLeft := tree.Intersect(r, interval, hit_record, node.LeftChild)
-
-	rightInterval := interval
-	if hitLeft {
-		rightInterval.Max = hit_record.T
 	}
-
-	hitRight := tree.Intersect(r, rightInterval, hit_record, node.LeftChild+1)
-
-	return hitLeft || hitRight
 }
 
-func (node *BVHNode) Intersect(r *ray.Ray, interval util.Interval) bool {
+func (node *BVHNode) Intersect(r *ray.Ray, interval util.Interval) float64 {
 	invertedRayDir := r.InvertedDir()
 	tx1 := (node.AABBMin.X()-r.Origin().X()) * invertedRayDir.X()
 	tx2 := (node.AABBMax.X()-r.Origin().X()) * invertedRayDir.X()
@@ -166,5 +234,8 @@ func (node *BVHNode) Intersect(r *ray.Ray, interval util.Interval) bool {
 	tmin = math.Max(tmin, min(tz1, tz2))
 	tmax = math.Min(tmax, max(tz1, tz2))
 
-	return tmax >= tmin && tmin < interval.Max && tmax > 0
+	if tmax >= tmin && tmin < interval.Max {
+		return tmin
+	}
+	return util.PosInf
 }
