@@ -52,9 +52,9 @@ func (aabb *AABB) Area() float64 {
 
 type BVHNode struct {
 	AABB
-	LeftChild  int
-	FirstPrim  int
-	NumTris    int
+	LeftChild int
+	FirstPrim int
+	NumTris   int
 }
 
 func (node *BVHNode) IsLeaf() bool {
@@ -65,7 +65,7 @@ func (node *BVHNode) UpdateBounds(allTris []Triangle, triIdxs []int) {
 	node.AABBMin = vec.LargestVec3()
 	node.AABBMax = vec.SmallestVec3()
 	firstTri := node.FirstPrim
-	for  i := range node.NumTris {
+	for i := range node.NumTris {
 		tri := allTris[triIdxs[firstTri+i]]
 		node.AABBMin = vec.MinCoords(node.AABBMin, tri.A.Position)
 		node.AABBMin = vec.MinCoords(node.AABBMin, tri.B.Position)
@@ -87,7 +87,7 @@ func evaluateSAH(node *BVHNode, axis int, pos float64, tris []Triangle, triIdxs 
 	rightCount := 0
 
 	for i := range node.NumTris {
-		tri := tris[triIdxs[node.FirstPrim + i]]
+		tri := tris[triIdxs[node.FirstPrim+i]]
 		if tri.center[axis] < pos {
 			leftCount++
 			leftBox.GrowToInclude(tri.A.Position)
@@ -101,20 +101,25 @@ func evaluateSAH(node *BVHNode, axis int, pos float64, tris []Triangle, triIdxs 
 		}
 	}
 
-	cost := float64(leftCount) * leftBox.Area() + float64(rightCount) * rightBox.Area()
+	cost := float64(leftCount)*leftBox.Area() + float64(rightCount)*rightBox.Area()
 	if cost > 0 {
 		return cost
 	}
 	return util.PosInf
 }
 
-func (node *BVHNode) Subdivide(tris []Triangle, triIdxs []int, allNodes []BVHNode, nodesUsed *int) {
-	bestAxis := -1
-	bestPos := 0.0
-	bestCost := util.PosInf
+func (node *BVHNode) cost() float64 {
+	return float64(node.NumTris) * node.AABB.Area()
+}
+
+func (node *BVHNode) bestSplitPlane(tris []Triangle, triIdxs []int) (bestAxis int, bestPos, bestCost float64) {
+	bestAxis = -1
+	bestPos = 0.0
+	bestCost = util.PosInf
+
 	for axis := range 3 {
 		for i := range node.NumTris {
-			tri := tris[triIdxs[node.FirstPrim + i]]
+			tri := tris[triIdxs[node.FirstPrim+i]]
 			candidatePos := tri.center[axis]
 			cost := evaluateSAH(node, axis, candidatePos, tris, triIdxs)
 			if cost < bestCost {
@@ -125,8 +130,41 @@ func (node *BVHNode) Subdivide(tris []Triangle, triIdxs []int, allNodes []BVHNod
 		}
 	}
 
-	parentCost := float64(node.NumTris) * node.AABB.Area()
-	if bestCost >= parentCost {
+	return
+}
+
+func (node *BVHNode) bestSplitPlane2(tris []Triangle, triIdxs []int) (bestAxis int, bestPos, bestCost float64) {
+	bestAxis = -1
+	bestPos = 0.0
+	bestCost = util.PosInf
+
+	for axis := range 3 {
+		boundsMin := node.AABBMin[axis]
+		boundsMax := node.AABBMax[axis]
+		if boundsMin >= boundsMax {
+			continue
+		}
+		subdivisions := 15
+		scale := (boundsMax - boundsMin) / float64(subdivisions)
+		for i := range subdivisions {
+			candidatePos := boundsMin + scale * float64(i)
+			cost := evaluateSAH(node, axis, candidatePos, tris, triIdxs)
+			if cost < bestCost {
+				bestPos = candidatePos
+				bestAxis = axis
+				bestCost = cost
+			}
+		}
+	}
+
+	return
+}
+
+func (node *BVHNode) Subdivide(tris []Triangle, triIdxs []int, allNodes []BVHNode, nodesUsed *int) {
+	noSplitCost := node.cost()
+	bestAxis, bestPos, splitCost := node.bestSplitPlane2(tris, triIdxs)
+
+	if splitCost >= noSplitCost {
 		return
 	}
 
@@ -134,7 +172,7 @@ func (node *BVHNode) Subdivide(tris []Triangle, triIdxs []int, allNodes []BVHNod
 	splitPos := bestPos
 
 	i := node.FirstPrim
-	j := i + node.NumTris-1
+	j := i + node.NumTris - 1
 
 	for i <= j {
 		if tris[triIdxs[i]].center[axis] < splitPos {
@@ -151,7 +189,7 @@ func (node *BVHNode) Subdivide(tris []Triangle, triIdxs []int, allNodes []BVHNod
 	}
 
 	leftChild := *nodesUsed
-	rightChild := *nodesUsed+1
+	rightChild := *nodesUsed + 1
 	node.LeftChild = leftChild
 	*nodesUsed += 2
 
@@ -219,18 +257,18 @@ func (tree *BVHTree) Intersect(r *ray.Ray, interval util.Interval, hit_record *H
 
 func (node *BVHNode) Intersect(r *ray.Ray, interval util.Interval) float64 {
 	invertedRayDir := r.InvertedDir()
-	tx1 := (node.AABBMin.X()-r.Origin().X()) * invertedRayDir.X()
-	tx2 := (node.AABBMax.X()-r.Origin().X()) * invertedRayDir.X()
+	tx1 := (node.AABBMin.X() - r.Origin().X()) * invertedRayDir.X()
+	tx2 := (node.AABBMax.X() - r.Origin().X()) * invertedRayDir.X()
 	tmin := math.Min(tx1, tx2)
 	tmax := math.Max(tx1, tx2)
 
-	ty1 := (node.AABBMin.Y()-r.Origin().Y()) * invertedRayDir.Y()
-	ty2 := (node.AABBMax.Y()-r.Origin().Y()) * invertedRayDir.Y()
+	ty1 := (node.AABBMin.Y() - r.Origin().Y()) * invertedRayDir.Y()
+	ty2 := (node.AABBMax.Y() - r.Origin().Y()) * invertedRayDir.Y()
 	tmin = math.Max(tmin, min(ty1, ty2))
 	tmax = math.Min(tmax, max(ty1, ty2))
 
-	tz1 := (node.AABBMin.Z()-r.Origin().Z()) * invertedRayDir.Z()
-	tz2 := (node.AABBMax.Z()-r.Origin().Z()) * invertedRayDir.Z()
+	tz1 := (node.AABBMin.Z() - r.Origin().Z()) * invertedRayDir.Z()
+	tz2 := (node.AABBMax.Z() - r.Origin().Z()) * invertedRayDir.Z()
 	tmin = math.Max(tmin, min(tz1, tz2))
 	tmax = math.Min(tmax, max(tz1, tz2))
 
