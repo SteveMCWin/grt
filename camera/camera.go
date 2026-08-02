@@ -1,7 +1,12 @@
 package camera
 
 import (
+	"bufio"
 	"fmt"
+	"grt/ray"
+	"grt/render_object"
+	"grt/util"
+	"grt/vec"
 	"io"
 	"math"
 	"math/rand/v2"
@@ -9,10 +14,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-	"grt/ray"
-	"grt/render_object"
-	"grt/util"
-	"grt/vec"
 )
 
 type Camera struct {
@@ -137,9 +138,13 @@ func (cam Camera) Render(stuff_to_render render_object.Hittable, w ...io.Writer)
 		w[0] = os.Stdout
 	}
 
-	fmt.Fprintf(w[0], "P3\n%d %d\n255\n", cam.ImageWidth, cam.imageHeight)
+	fmt.Fprintf(w[0], "P6\n%d %d\n255\n", cam.ImageWidth, cam.imageHeight)
+	writer := bufio.NewWriterSize(w[0], 1<<20)
+	defer writer.Flush()
+
 	for _, col := range buffer {
-		fmt.Fprint(w[0], vec.Color(col))
+		r, g, b := vec.Color(col).Components()
+		writer.Write([]byte{r, g, b})
 	}
 }
 
