@@ -161,6 +161,7 @@ func (node *BVHNode) bestSplitPlane2(tris []Triangle, triIdxs []int) (bestAxis i
 }
 
 func (node *BVHNode) Subdivide(tris []Triangle, triIdxs []int, allNodes []BVHNode, nodesUsed *int) {
+	node.LeftChild = -1
 	noSplitCost := node.cost()
 	bestAxis, bestPos, splitCost := node.bestSplitPlane2(tris, triIdxs)
 
@@ -212,7 +213,15 @@ func (tree *BVHTree) Intersect(r *ray.Ray, interval util.Interval, hit_record *H
 	hit_anything := false
 
 	for {
-		if node.IsLeaf() && node.Intersect(r, interval) < util.PosInf {
+		if node.IsLeaf() {
+			if node.Intersect(r, interval) >= util.PosInf {
+				if len(stack) <= 0 {
+					return hit_anything
+				}
+				node = stack[len(stack)-1]
+				stack = stack[:len(stack)-1]
+				continue
+			}
 			closest_so_far := interval.Max
 
 			for i := range node.NumTris {
@@ -225,10 +234,9 @@ func (tree *BVHTree) Intersect(r *ray.Ray, interval util.Interval, hit_record *H
 
 			if len(stack) <= 0 {
 				return hit_anything
-			} else {
-				node = stack[len(stack)-1]
-				stack = stack[:len(stack)-1]
 			}
+			node = stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
 			continue
 		}
 		child1 := tree.Nodes[node.LeftChild]
