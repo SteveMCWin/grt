@@ -4,7 +4,6 @@ import (
 	"grt/ray"
 	"grt/util"
 	"grt/vec"
-	"math"
 )
 
 type BVHTree struct {
@@ -267,18 +266,18 @@ func (node *BVHNode) Intersect(r *ray.Ray, interval util.Interval) float64 {
 	invertedRayDir := r.InvertedDir()
 	tx1 := (node.AABBMin.X() - r.Origin().X()) * invertedRayDir.X()
 	tx2 := (node.AABBMax.X() - r.Origin().X()) * invertedRayDir.X()
-	tmin := math.Min(tx1, tx2)
-	tmax := math.Max(tx1, tx2)
+	tmin := min(tx1, tx2)
+	tmax := max(tx1, tx2)
 
 	ty1 := (node.AABBMin.Y() - r.Origin().Y()) * invertedRayDir.Y()
 	ty2 := (node.AABBMax.Y() - r.Origin().Y()) * invertedRayDir.Y()
-	tmin = math.Max(tmin, min(ty1, ty2))
-	tmax = math.Min(tmax, max(ty1, ty2))
+	tmin = max(tmin, min(ty1, ty2))
+	tmax = min(tmax, max(ty1, ty2))
 
 	tz1 := (node.AABBMin.Z() - r.Origin().Z()) * invertedRayDir.Z()
 	tz2 := (node.AABBMax.Z() - r.Origin().Z()) * invertedRayDir.Z()
-	tmin = math.Max(tmin, min(tz1, tz2))
-	tmax = math.Min(tmax, max(tz1, tz2))
+	tmin = max(tmin, min(tz1, tz2))
+	tmax = min(tmax, max(tz1, tz2))
 
 	if tmax >= tmin && tmin < interval.Max {
 		return tmin

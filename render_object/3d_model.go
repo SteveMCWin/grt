@@ -41,7 +41,8 @@ func NewModel(mesh TriangleMesh, material Material, position, rotation, scale ve
 }
 
 func (m *Model) Hit(r *ray.Ray, interval util.Interval, hit_record *HitRecord) bool {
-	transformed_ray := ray.NewRay(m.inverseMatrix.MultiplyPoint(r.Origin()), m.inverseMatrix.MultiplyDir(r.Direction()))
+	// the rays are normalized only in world space, if we were to normalize them in model space, then the scale of the model wouldn't have a proper effect on ray distance.
+	transformed_ray := ray.NewRayDeNorm(m.inverseMatrix.MultiplyPoint(r.Origin()), m.inverseMatrix.MultiplyDir(r.Direction()))
 
 	hit_anything := m.BVHTree.Intersect(&transformed_ray, interval, hit_record, m.BVHTree.RootNodeIdx)
 	hit_record.Material = m.Material

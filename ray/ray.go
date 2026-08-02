@@ -21,6 +21,16 @@ func NewRay(orig, dir vec.Vec3) Ray {
 	return r
 }
 
+func NewRayDeNorm(orig, dir vec.Vec3) Ray {
+	r := Ray{
+		origin:    orig,
+		direction: dir,
+		inverseDir: dir.Inverted(),
+	}
+
+	return r
+}
+
 func (r *Ray) Origin() vec.Vec3 {
 	return r.origin
 }

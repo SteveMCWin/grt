@@ -40,9 +40,9 @@ func main() {
 		log.Println("Error loading file:", err)
 	}
 
-	teapotPosition := vec.Vec3{0.0, 0.2, -1.0}
+	teapotPosition := vec.Vec3{0.0, 0.3, -1.0}
 	teapotRotation := vec.Vec3{0.0, 3.0,  0.0}
-	teapotScale    := vec.Vec3{1.0, 1.0, 1.0}
+	teapotScale    := vec.Vec3{0.5, 0.5, 0.5}
 
 	log.Println("Making BVH...")
 	teapotModel := render_object.NewModel(teapotMesh, teapotMaterial, teapotPosition, teapotRotation, teapotScale)

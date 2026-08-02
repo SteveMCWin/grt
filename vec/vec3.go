@@ -105,7 +105,7 @@ func Reflect(v *Vec3, n Vec3) {
 }
 
 func Refract(v *Vec3, n Vec3, etai_over_etat float64) {
-	cos_theta := math.Min(Dot(v.Scaled(-1.0), n), 1.0)
+	cos_theta := min(Dot(v.Scaled(-1.0), n), 1.0)
 	r_out_perp := Add(*v, n.Scaled(cos_theta)).Scaled(etai_over_etat)
 	r_out_parallel := n.Scaled(-math.Sqrt(math.Abs(1.0 - r_out_perp.LenSquared())))
 	*v = Add(r_out_perp, r_out_parallel)
@@ -133,7 +133,7 @@ func (v Vec3) Reflected(n Vec3) Vec3 {
 }
 
 func (v Vec3) Refracted(n Vec3, etai_over_etat float64) Vec3 {
-	cos_theta := math.Min(Dot(v.Scaled(-1.0), n), 1.0)
+	cos_theta := min(Dot(v.Scaled(-1.0), n), 1.0)
 	r_out_perp := Add(v, n.Scaled(cos_theta)).Scaled(etai_over_etat)
 	r_out_parallel := n.Scaled(-math.Sqrt(math.Abs(1.0 - r_out_perp.LenSquared())))
 	return Add(r_out_perp, r_out_parallel)
@@ -158,17 +158,17 @@ func Cross(v1, v2 Vec3) Vec3 {
 
 func MinCoords(v1, v2 Vec3) Vec3 {
 	return Vec3{
-		math.Min(v1.X(), v2.X()),
-		math.Min(v1.Y(), v2.Y()),
-		math.Min(v1.Z(), v2.Z()),
+		min(v1.X(), v2.X()),
+		min(v1.Y(), v2.Y()),
+		min(v1.Z(), v2.Z()),
 	}
 }
 
 func MaxCoords(v1, v2 Vec3) Vec3 {
 	return Vec3{
-		math.Max(v1.X(), v2.X()),
-		math.Max(v1.Y(), v2.Y()),
-		math.Max(v1.Z(), v2.Z()),
+		max(v1.X(), v2.X()),
+		max(v1.Y(), v2.Y()),
+		max(v1.Z(), v2.Z()),
 	}
 }
 

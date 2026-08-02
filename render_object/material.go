@@ -61,7 +61,7 @@ func (d *Dielectric) Scatter(r_in *ray.Ray, rec *HitRecord, attenuation *vec.Col
 		reflection_index = d.RefractionIndex
 	}
 
-	cos_theta := math.Min(vec.Dot(r_in.Direction().Neg(), rec.Normal), 1.0)
+	cos_theta := min(vec.Dot(r_in.Direction().Neg(), rec.Normal), 1.0)
 	sin_theta := math.Sqrt(1.0 - cos_theta*cos_theta)
 
 	cannot_refract := reflection_index * sin_theta > 1.0
