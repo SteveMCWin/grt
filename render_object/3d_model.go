@@ -45,6 +45,10 @@ func (m *Model) Hit(r *ray.Ray, interval util.Interval, hit_record *HitRecord) b
 	transformed_ray := ray.NewRayDeNorm(m.inverseMatrix.MultiplyPoint(r.Origin()), m.inverseMatrix.MultiplyDir(r.Direction()))
 
 	hit_anything := m.BVHTree.Intersect(&transformed_ray, interval, hit_record, m.BVHTree.RootNodeIdx)
+	if !hit_anything {
+		return false
+	}
+
 	hit_record.Material = m.Material
 	hit_record.Point = m.modelMatrix.MultiplyPoint(hit_record.Point)
 
@@ -56,5 +60,5 @@ func (m *Model) Hit(r *ray.Ray, interval util.Interval, hit_record *HitRecord) b
 	worldNormal := m.inverseMatrix.Transposed().MultiplyDir(outwardObjNormal)
 	hit_record.SetFaceNormal(r, worldNormal.Normalized())
 
-	return hit_anything
+	return true
 }

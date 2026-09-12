@@ -135,6 +135,7 @@ func (cam Camera) Render(stuff_to_render render_object.Hittable, w ...io.Writer)
 	fmt.Fprintf(os.Stderr, "\rRendered %d/%d pixels (100.0%%)\n", totalPixels, totalPixels)
 
 	if len(w) < 1 {
+		w = make([]io.Writer, 1)
 		w[0] = os.Stdout
 	}
 
