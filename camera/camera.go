@@ -27,7 +27,7 @@ type Camera struct {
 	SamplesPerPixel int
 	MaxDepth        int
 
-	Center vec.Vec3
+	Position vec.Vec3
 	LookAt vec.Vec3
 	Up     vec.Vec3
 
@@ -45,25 +45,42 @@ type Camera struct {
 	u              vec.Vec3
 	v              vec.Vec3
 	w              vec.Vec3
+
+	Background vec.Color
 }
 
-func NewCam(aspect_ratio, vfov, defocus_angle, focus_dist float64, image_width, samples_per_pixel, max_depth int, cam_center, look_at, up vec.Vec3) Camera {
+type CamDescriptor struct {
+	Position        vec.Vec3
+	LookAt          vec.Vec3
+	Up              vec.Vec3
+	Background      vec.Color
+	AspectRatio     float64
+	Vfov            float64
+	DefocusAngle    float64
+	FocusDist       float64
+	ImageWidth      int
+	SamplesPerPixel int
+	MaxDepth        int
+}
+
+func NewCam(desc CamDescriptor) Camera {
 	cam := Camera{
-		AspectRatio:     aspect_ratio,
-		Vfov:            vfov,
-		DefocusAngle:    defocus_angle,
-		FocusDist:       focus_dist,
-		ImageWidth:      image_width,
-		SamplesPerPixel: max(1, samples_per_pixel),
-		MaxDepth:        max_depth,
-		Center:          cam_center,
-		LookAt:          look_at,
-		Up:              up,
+		AspectRatio:     desc.AspectRatio,
+		Vfov:            desc.Vfov,
+		DefocusAngle:    desc.DefocusAngle,
+		FocusDist:       desc.FocusDist,
+		ImageWidth:      desc.ImageWidth,
+		SamplesPerPixel: max(1, desc.SamplesPerPixel),
+		MaxDepth:        max(2, desc.MaxDepth),
+		Position:        desc.Position,
+		LookAt:          desc.LookAt,
+		Up:              desc.Up,
+		Background:      desc.Background,
 	}
 
-	cam.imageHeight = max(1, int(float64(image_width)/cam.AspectRatio))
+	cam.imageHeight = max(1, int(float64(desc.ImageWidth)/cam.AspectRatio))
 
-	cam.samplesScale = 1.0 / float64(samples_per_pixel)
+	cam.samplesScale = 1.0 / float64(cam.SamplesPerPixel)
 
 	// focal_length := vec.Subtract(cam.Center, cam.LookAt).Len()
 	theta := util.DegToRad(cam.Vfov)
@@ -71,7 +88,7 @@ func NewCam(aspect_ratio, vfov, defocus_angle, focus_dist float64, image_width, 
 	cam.viewportHeight = 2.0 * h * cam.FocusDist
 	cam.viewportWidth = cam.viewportHeight * (float64(cam.ImageWidth) / float64(cam.imageHeight))
 
-	cam.w = vec.Subtract(cam.Center, cam.LookAt).Normalized()
+	cam.w = vec.Subtract(cam.Position, cam.LookAt).Normalized()
 	cam.u = vec.Cross(cam.Up, cam.w).Normalized()
 	cam.v = vec.Cross(cam.w, cam.u)
 
@@ -81,7 +98,7 @@ func NewCam(aspect_ratio, vfov, defocus_angle, focus_dist float64, image_width, 
 	cam.pixelDeltaU = cam.viewportU.Scaled(1.0 / float64(cam.ImageWidth))
 	cam.pixelDeltaV = cam.viewportV.Scaled(1.0 / float64(cam.imageHeight))
 
-	viewport_upper_left := vec.Subtract(cam.Center, cam.w.Scaled(cam.FocusDist), cam.viewportU.Scaled(0.5), cam.viewportV.Scaled(0.5))
+	viewport_upper_left := vec.Subtract(cam.Position, cam.w.Scaled(cam.FocusDist), cam.viewportU.Scaled(0.5), cam.viewportV.Scaled(0.5))
 
 	cam.startPixelLoc = vec.Add(viewport_upper_left, vec.Add(cam.pixelDeltaU, cam.pixelDeltaV).Scaled(0.5))
 
@@ -151,7 +168,7 @@ func (cam Camera) Render(stuff_to_render render_object.Hittable, w ...io.Writer)
 
 func (cam Camera) defocusDiskSample() vec.Vec3 {
 	p := vec.RandInUnitDisk()
-	return vec.Add(cam.Center, cam.defocusU.Scaled(p.X()), cam.defocusV.Scaled(p.Y()))
+	return vec.Add(cam.Position, cam.defocusU.Scaled(p.X()), cam.defocusV.Scaled(p.Y()))
 }
 
 func (cam Camera) getOffsetRay(i, j int) ray.Ray {
@@ -160,7 +177,7 @@ func (cam Camera) getOffsetRay(i, j int) ray.Ray {
 
 	var ray_origin vec.Vec3
 	if cam.DefocusAngle <= 0 {
-		ray_origin = cam.Center
+		ray_origin = cam.Position
 	} else {
 		ray_origin = cam.defocusDiskSample()
 	}
@@ -175,22 +192,21 @@ func (cam Camera) RayColor(r ray.Ray, depth int, shape render_object.Hittable) v
 	}
 
 	var rec render_object.HitRecord
-	if shape.Hit(&r, util.Interval{Min: 0.001, Max: util.PosInf}, &rec) {
-		var scattered ray.Ray
-		var attenuation vec.Color
-
-		if rec.Material == nil {
-			panic("No material!!!")
-		}
-
-		if rec.Material.Scatter(&r, &rec, &attenuation, &scattered) {
-			return vec.Color(vec.Mul(vec.Vec3(attenuation), vec.Vec3(cam.RayColor(scattered, depth-1, shape))))
-		}
-
-		return vec.Color{0.0, 0.0, 0.0}
+	if !shape.Hit(&r, util.Interval{Min: 0.001, Max: util.PosInf}, &rec) {
+		return cam.Background
 	}
 
-	a := 0.5 * (r.Direction().Y() + 1.0)
-	res := vec.Add(vec.Vec3{1.0, 1.0, 1.0}.Scaled(1.0-a), vec.Vec3{0.5, 0.7, 1.0}.Scaled(a))
-	return vec.Color(res)
+	if rec.Material == nil {
+		panic("No material!!!")
+	}
+
+	var attenuation vec.Color
+	var scattered ray.Ray
+
+	if !rec.Material.Scatter(&r, &rec, &attenuation, &scattered) {
+		return rec.Emitted
+	}
+
+	colorFromScatter := vec.Color(vec.Mul(vec.Vec3(attenuation), vec.Vec3(cam.RayColor(scattered, depth-1, shape))))
+	return vec.Color{rec.Emitted[0]+colorFromScatter[0], rec.Emitted[1]+colorFromScatter[1], rec.Emitted[2]+colorFromScatter[2]}
 }

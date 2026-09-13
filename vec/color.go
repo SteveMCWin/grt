@@ -35,3 +35,7 @@ func (c Color) Components() (r, g, b byte) {
 	b = byte(256 * color_intensity.Clamp(gamma_corrected[2]))
 	return
 }
+
+func (c1 Color) Equals(c2 Color) bool {
+	return c1[0] == c2[0] && c1[1] == c2[1] && c1[2] == c2[2]
+}

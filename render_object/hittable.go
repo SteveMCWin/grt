@@ -15,7 +15,7 @@ type HitRecord struct {
 	Front       bool
 	U           float64
 	V           float64
-	ResultColor vec.Color
+	Emitted     vec.Color
 }
 
 func (rec *HitRecord) SetFaceNormal(r *ray.Ray, outward_normal vec.Vec3) {

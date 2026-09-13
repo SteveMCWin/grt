@@ -11,8 +11,6 @@ type Material interface {
 	Scatter(r_in *ray.Ray, rec *HitRecord, attenuation *vec.Color, r_out *ray.Ray) bool
 }
 
-
-
 type Lambertian struct {
 	Texture TexType
 }
@@ -82,4 +80,16 @@ func reflectance(cosine, refraction_index float64) float64 {
 	r0 := (1.0 - refraction_index) / (1 + refraction_index)
 	r0 = r0*r0
 	return r0 + (1.0-r0)*math.Pow((1-cosine), 5)
+}
+
+type Emitter struct {
+	Texture TexType
+}
+
+func (e *Emitter) Scatter(r_in *ray.Ray, rec *HitRecord, attenuation *vec.Color, r_out *ray.Ray) bool {
+	// put the light color of the emitter into hit record
+	rec.Emitted = e.Texture.GetColor(rec)
+
+	// emitters don't scatter the light further, they are the source
+	return false
 }
