@@ -33,12 +33,16 @@ func main() {
 	lightTexture1 := &render_object.FlatColorProvider{ Color: vec.Color{ 8.0, 4.0, 3.0 } }
 	lightTexture2 := &render_object.FlatColorProvider{ Color: vec.Color{ 3.0, 4.0, 8.0 } }
 	lightTexture3 := &render_object.FlatColorProvider{ Color: vec.Color{ 4.0, 4.0, 4.0 } }
+	// mistTexture   := &render_object.FlatColorProvider{ Color: vec.Color{ 0.8, 0.8, 0.8 } }
 
 	// groundMaterial := &render_object.Lambertian{Texture: groundTexture}
 	teapotMaterial := &render_object.Lambertian{Texture: teapotTexture}
 	lightMaterial1 := &render_object.Emitter{Texture: lightTexture1}
 	lightMaterial2 := &render_object.Emitter{Texture: lightTexture2}
 	lightMaterial3 := &render_object.Emitter{Texture: lightTexture3}
+	// mistMaterial   := &render_object.Lambertian{Texture: mistTexture}
+
+	// mistBoundary := render_object.Sphere{ Center: vec.Vec3{ 0.0, 0.0, 0.0 }, Radius: 50.0, Material: mistMaterial }
 
 	// WORLD
 	world := render_object.HittableList{ Shapes: make([]render_object.Hittable, 0) }
@@ -46,6 +50,7 @@ func main() {
 	world.Add(&render_object.Sphere{ Center: vec.Vec3{ -1.0,    1.2, -0.7 }, Radius:   0.5, Material: lightMaterial1 })
 	world.Add(&render_object.Sphere{ Center: vec.Vec3{ +1.0,    1.2, -0.8 }, Radius:  0.35, Material: lightMaterial2 })
 	world.Add(&render_object.Sphere{ Center: vec.Vec3{  0.0,   -5.0, -0.8 }, Radius:   0.2, Material: lightMaterial3 })
+	// world.Add(&render_object.Mist{ Boundary: &mistBoundary, Material: mistMaterial, NegInvDensity: -100.0 })
 
 	teapotMesh, err := data_loader.Load3DModel("models/teapot.obj")
 	if err != nil {

@@ -93,3 +93,13 @@ func (e *Emitter) Scatter(r_in *ray.Ray, rec *HitRecord, attenuation *vec.Color,
 	// emitters don't scatter the light further, they are the source
 	return false
 }
+
+type Isotropic struct {
+	Texture TexType
+}
+
+func (i *Isotropic) Scatter(r_in *ray.Ray, rec *HitRecord, attenuation *vec.Color, r_out *ray.Ray) bool {
+	*r_out = ray.NewRay(rec.Point, vec.Random())
+	*attenuation = i.Texture.GetColor(rec)
+	return true
+}
