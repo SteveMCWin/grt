@@ -23,15 +23,16 @@ type Camera struct {
 	DefocusAngle float64
 	FocusDist    float64
 
-	ImageWidth      int
-	SamplesPerPixel int
-	MaxDepth        int
+	ImageWidth int
+	SqrtSPP    float64
+	MaxDepth   int
 
 	Position vec.Vec3
-	LookAt vec.Vec3
-	Up     vec.Vec3
+	LookAt   vec.Vec3
+	Up       vec.Vec3
 
 	imageHeight    int
+	recipSqrtSPP   float64
 	viewportWidth  float64
 	viewportHeight float64
 	samplesScale   float64
@@ -65,22 +66,23 @@ type CamDescriptor struct {
 
 func NewCam(desc CamDescriptor) Camera {
 	cam := Camera{
-		AspectRatio:     desc.AspectRatio,
-		Vfov:            desc.Vfov,
-		DefocusAngle:    desc.DefocusAngle,
-		FocusDist:       desc.FocusDist,
-		ImageWidth:      desc.ImageWidth,
-		SamplesPerPixel: max(1, desc.SamplesPerPixel),
-		MaxDepth:        max(2, desc.MaxDepth),
-		Position:        desc.Position,
-		LookAt:          desc.LookAt,
-		Up:              desc.Up,
-		Background:      desc.Background,
+		AspectRatio:  desc.AspectRatio,
+		Vfov:         desc.Vfov,
+		DefocusAngle: desc.DefocusAngle,
+		FocusDist:    desc.FocusDist,
+		ImageWidth:   desc.ImageWidth,
+		SqrtSPP:      math.Sqrt(float64(max(1, desc.SamplesPerPixel))),
+		MaxDepth:     max(2, desc.MaxDepth),
+		Position:     desc.Position,
+		LookAt:       desc.LookAt,
+		Up:           desc.Up,
+		Background:   desc.Background,
 	}
 
 	cam.imageHeight = max(1, int(float64(desc.ImageWidth)/cam.AspectRatio))
 
-	cam.samplesScale = 1.0 / float64(cam.SamplesPerPixel)
+	cam.samplesScale = 1.0 / float64(cam.SqrtSPP*cam.SqrtSPP)
+	cam.recipSqrtSPP = 1.0 / cam.SqrtSPP
 
 	// focal_length := vec.Subtract(cam.Center, cam.LookAt).Len()
 	theta := util.DegToRad(cam.Vfov)
@@ -137,9 +139,11 @@ func (cam Camera) Render(stuff_to_render render_object.Hittable, w ...io.Writer)
 			go func(i, j int) {
 				defer wg.Done()
 				col := vec.Vec3{0.0, 0.0, 0.0}
-				for range cam.SamplesPerPixel {
-					r := cam.getOffsetRay(i, j)
-					col = vec.Add(col, vec.Vec3(cam.RayColor(r, cam.MaxDepth, stuff_to_render)))
+				for s_j := 0; float64(s_j) < cam.SqrtSPP; s_j++ {
+					for s_i := 0; float64(s_i) < cam.SqrtSPP; s_i++ {
+						r := cam.getOffsetRay(i, j, s_i, s_j)
+						col = vec.Add(col, vec.Vec3(cam.RayColor(r, cam.MaxDepth, stuff_to_render)))
+					}
 				}
 				buffer[j*cam.ImageWidth+i] = col.Scaled(cam.samplesScale)
 				completedPixels.Add(1)
@@ -166,13 +170,20 @@ func (cam Camera) Render(stuff_to_render render_object.Hittable, w ...io.Writer)
 	}
 }
 
+func (cam Camera) sampleSquareStratified(s_i, s_j int) vec.Vec3 {
+	px := ((float64(s_i) + rand.Float64()) * cam.recipSqrtSPP) - 0.5
+	py := ((float64(s_j) + rand.Float64()) * cam.recipSqrtSPP) - 0.5
+
+	return vec.Vec3{px, py, 0.0}
+}
+
 func (cam Camera) defocusDiskSample() vec.Vec3 {
 	p := vec.RandInUnitDisk()
 	return vec.Add(cam.Position, cam.defocusU.Scaled(p.X()), cam.defocusV.Scaled(p.Y()))
 }
 
-func (cam Camera) getOffsetRay(i, j int) ray.Ray {
-	offset := vec.Vec3{rand.Float64() - 0.5, rand.Float64() - 0.5, 0.0}
+func (cam Camera) getOffsetRay(i, j, s_i, s_j int) ray.Ray {
+	offset := cam.sampleSquareStratified(s_i, s_j)
 	pixel_sample := vec.Add(cam.startPixelLoc, cam.pixelDeltaU.Scaled(float64(i)+offset.X()), cam.pixelDeltaV.Scaled(float64(j)+offset.Y()))
 
 	var ray_origin vec.Vec3
@@ -208,5 +219,5 @@ func (cam Camera) RayColor(r ray.Ray, depth int, shape render_object.Hittable) v
 	}
 
 	colorFromScatter := vec.Color(vec.Mul(vec.Vec3(attenuation), vec.Vec3(cam.RayColor(scattered, depth-1, shape))))
-	return vec.Color{rec.Emitted[0]+colorFromScatter[0], rec.Emitted[1]+colorFromScatter[1], rec.Emitted[2]+colorFromScatter[2]}
+	return vec.Color{rec.Emitted[0] + colorFromScatter[0], rec.Emitted[1] + colorFromScatter[1], rec.Emitted[2] + colorFromScatter[2]}
 }
