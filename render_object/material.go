@@ -88,7 +88,7 @@ type Emitter struct {
 
 func (e *Emitter) Scatter(r_in *ray.Ray, rec *HitRecord, attenuation *vec.Color, r_out *ray.Ray) bool {
 	// put the light color of the emitter into hit record
-	rec.Emitted = e.Texture.GetColor(rec)
+	rec.Emitted = e.Texture.GetColor(rec).Normalized()
 
 	// emitters don't scatter the light further, they are the source
 	return false

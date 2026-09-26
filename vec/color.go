@@ -39,3 +39,12 @@ func (c Color) Components() (r, g, b byte) {
 func (c1 Color) Equals(c2 Color) bool {
 	return c1[0] == c2[0] && c1[1] == c2[1] && c1[2] == c2[2]
 }
+
+// Normalizes the color only if it's intensity is greater than 1
+func (c Color) Normalized() Color {
+	vc := Vec3(c)
+	if vc.LenSquared() > 1.0 {
+		vc = vc.Normalized()
+	}
+	return Color(vc)
+}

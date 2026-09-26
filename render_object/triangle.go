@@ -84,12 +84,15 @@ func (tri *Triangle) Hit(r *ray.Ray, interval util.Interval, hit_record *HitReco
 
 	pointNormal := vec.Add(tri.A.Normal.Scaled(u), tri.B.Normal.Scaled(v), tri.C.Normal.Scaled(w))
 	vertexColor := vec.Add(vec.Vec3(tri.A.Color).Scaled(u), vec.Vec3(tri.B.Color).Scaled(v), vec.Vec3(tri.C.Color).Scaled(w))
+	TexCoord := vec.Add(tri.A.TexCoord.Scaled(u), tri.B.TexCoord.Scaled(v), tri.C.TexCoord.Scaled(w))
 
 	hit_record.T = t
 	hit_record.Point = r.At(t)
 	hit_record.SetFaceNormal(r, pointNormal)
 	hit_record.Material = tri.Material
 	hit_record.VertexColor = vec.Color(vertexColor)
+	hit_record.U = TexCoord.X()
+	hit_record.V = TexCoord.Y()
 
 	return true
 }

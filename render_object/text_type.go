@@ -2,6 +2,8 @@ package render_object
 
 import (
 	"grt/vec"
+	"image"
+	"math"
 )
 
 type TexType interface {
@@ -45,11 +47,16 @@ func (fcp *FlatColorProvider) GetColor(rec *HitRecord) vec.Color {
 }
 
 type TextureColorProvider struct {
-	// *texture
+	Texture image.Image
 }
 
-// func (tcp *TextureColorProvider) GetColor(rec *HitRecord) vec.Color {
-	// pX = tcp.Texture.Width  * rec.U
-	// pY = tcp.Texture.Height * rec.V
-	// return tcp.Texture.At(pX, pY)
-// }
+func (tcp *TextureColorProvider) GetColor(rec *HitRecord) vec.Color {
+	pX := float64(tcp.Texture.Bounds().Max.X)  * rec.U
+	pY := float64(tcp.Texture.Bounds().Max.Y) * (1.0 - rec.V) // y is inverted
+	r, g, b, _ := tcp.Texture.At(int(pX), int(pY)).RGBA()
+	// Note: r, g and b are all uint 32 but values range from 0 to 0xffff per the docs
+	fr := float64(r)/float64(math.MaxUint16)
+	fg := float64(g)/float64(math.MaxUint16)
+	fb := float64(b)/float64(math.MaxUint16)
+	return vec.Color{fr, fg, fb}
+}
