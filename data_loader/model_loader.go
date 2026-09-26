@@ -9,6 +9,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"path/filepath"
 
 	_ "image/jpeg"
 	_ "image/png"
@@ -129,7 +130,7 @@ func loadOBJModel(filepath string) (render_object.TriangleMesh, render_object.Ma
 
 		switch line_start {
 		case material_line:
-			mat = LoadTextureMap(line)
+			mat = LoadTextureMap(filepath, line)
 		case vertex_pos_line:
 			add_vertex_pos(line)
 		case vertex_norm_line:
@@ -148,18 +149,22 @@ func loadOBJModel(filepath string) (render_object.TriangleMesh, render_object.Ma
 	return mesh, mat, nil
 }
 
-func LoadTextureMap(line string) (mat render_object.Material) {
-	parts := strings.Split(line, OBJ_DATA_SEP)
+func LoadTextureMap(objFilePath, mtlibLine string) (mat render_object.Material) {
+	mat = nil
+
+	parts := strings.Split(mtlibLine, OBJ_DATA_SEP)
 	if len(parts) < 2 {
 		log.Println("ERROR: when splitting material line, had less than two elements")
 		mat = &render_object.Lambertian{ Texture: &render_object.DebugColorProvider{ Type: render_object.VertexColor }}
 		return
 	}
 	mtl_file_name := parts[1]
+	mtl_file_dir := filepath.Dir(objFilePath)
+	mtl_file_path := filepath.Join(mtl_file_dir, mtl_file_name)
 
-	mtlFile, err := os.Open(mtl_file_name)
+	mtlFile, err := os.Open(mtl_file_path)
 	if err != nil {
-		log.Println("ERROR: couldn't open mtl file from mtl_file_name:", mtl_file_name)
+		log.Println("ERROR: couldn't open mtl file from mtl_file_name:", mtl_file_path)
 		mat = &render_object.Lambertian{ Texture: &render_object.DebugColorProvider{ Type: render_object.VertexColor }}
 		return
 	}
@@ -182,9 +187,10 @@ func LoadTextureMap(line string) (mat render_object.Material) {
 	}
 
 	albedoTexture := strings.Split(mapKdLine, OBJ_DATA_SEP)[1]
-	imageReader, err := os.Open(albedoTexture)
+	albedo_texture_filepath := filepath.Join(mtl_file_dir, albedoTexture)
+	imageReader, err := os.Open(albedo_texture_filepath)
 	if err != nil {
-		log.Println("ERROR: while opening image: ", albedoTexture, " ERR_MSG: ", err)
+		log.Println("ERROR: while opening image: ", albedo_texture_filepath, " ERR_MSG: ", err)
 		mat = &render_object.Lambertian{ Texture: &render_object.DebugColorProvider{ Type: render_object.VertexColor }}
 		return
 	}
@@ -198,6 +204,7 @@ func LoadTextureMap(line string) (mat render_object.Material) {
 	}
 	log.Println("Decoded texture map with format ", format)
 
+	log.Println("Texutre bounds: ", tex.Bounds())
 	mat = &render_object.Lambertian{ Texture: &render_object.TextureColorProvider{ Texture: tex }}
 
 	return

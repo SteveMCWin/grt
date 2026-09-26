@@ -11,4 +11,4 @@ Ni 1.450000
 d 1.000000
 illum 1
 map_Bump -bm 0.300000 boat_normals.png
-map_Kd boat_albedo.png
+map_Kd boat_albedo.jpg
