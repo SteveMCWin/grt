@@ -52,10 +52,11 @@ type TextureColorProvider struct {
 
 func (tcp *TextureColorProvider) GetColor(rec *HitRecord) vec.Color {
 	pX := float64(tcp.Texture.Bounds().Max.X)  * rec.U
-	pY := float64(tcp.Texture.Bounds().Max.Y) * rec.V
+	pY := float64(tcp.Texture.Bounds().Max.Y) * (1.0 - rec.V) // y is inverted
 	r, g, b, _ := tcp.Texture.At(int(pX), int(pY)).RGBA()
-	fr := float64(r)/float64(math.MaxUint32)
-	fg := float64(g)/float64(math.MaxUint32)
-	fb := float64(b)/float64(math.MaxUint32)
+	// Note: r, g and b are all uint 32 but values range from 0 to 0xffff per the docs
+	fr := float64(r)/float64(math.MaxUint16)
+	fg := float64(g)/float64(math.MaxUint16)
+	fb := float64(b)/float64(math.MaxUint16)
 	return vec.Color{fr, fg, fb}
 }
