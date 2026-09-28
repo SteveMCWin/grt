@@ -23,7 +23,7 @@ func main() {
 		Up: vec.Vec3{0.0, 1.0, 0.0},
 		DefocusAngle: 0.0,
 		FocusDist: 1.4,
-		Background: vec.Color{ 0.0, 0.0, 0.0 },
+		Background: vec.Color{ 0.01, 0.01, 0.01 },
 	}
 
 	c := camera.NewCam(camDesc)
