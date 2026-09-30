@@ -11,6 +11,7 @@ import (
 	"math"
 	"math/rand/v2"
 	"os"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -111,10 +112,9 @@ func NewCam(desc CamDescriptor) Camera {
 	return cam
 }
 
-func (cam Camera) Render(stuff_to_render render_object.Hittable, w ...io.Writer) {
+func (cam Camera) RenderScene(stuff_to_render render_object.Hittable, w ...io.Writer) {
 	totalPixels := cam.ImageWidth * cam.imageHeight
 	buffer := make([]vec.Vec3, totalPixels)
-	var wg sync.WaitGroup
 
 	var completedPixels atomic.Int64
 
@@ -133,22 +133,57 @@ func (cam Camera) Render(stuff_to_render render_object.Hittable, w ...io.Writer)
 		}
 	}()
 
-	for j := range cam.imageHeight {
-		for i := range cam.ImageWidth {
-			wg.Add(1)
-			go func(i, j int) {
-				defer wg.Done()
-				col := vec.Vec3{0.0, 0.0, 0.0}
-				for s_j := 0; float64(s_j) < cam.SqrtSPP; s_j++ {
-					for s_i := 0; float64(s_i) < cam.SqrtSPP; s_i++ {
-						r := cam.getOffsetRay(i, j, s_i, s_j)
-						col = vec.Add(col, vec.Vec3(cam.RayColor(r, cam.MaxDepth, stuff_to_render)))
+	maxPatchSize := 16
+	numWorkers := runtime.NumCPU()
+
+	horizontalPatches := int(math.Ceil(float64(cam.ImageWidth)/float64(maxPatchSize)))
+	verticalPatches := int(math.Ceil(float64(cam.imageHeight)/float64(maxPatchSize)))
+	numPatches :=  horizontalPatches * verticalPatches
+	startPixels := make([]vec.Vec3, 0, numPatches)
+
+	for j := range verticalPatches {
+		for i := range horizontalPatches {
+			startPixels = append(startPixels, vec.Vec3{float64(i*maxPatchSize), float64(j*maxPatchSize), 0})
+		}
+	}
+
+	patchQueue := make(chan vec.Vec3, numWorkers)
+
+	go func() {
+		for _, vec := range startPixels {
+			patchQueue <- vec
+		}
+		close(patchQueue)
+	}()
+
+	var wg sync.WaitGroup
+
+	for range numWorkers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for pixelPos := range patchQueue {
+				patchWidth := maxPatchSize - max(0, int(pixelPos.X()) + maxPatchSize - cam.ImageWidth)
+				patchHeight := maxPatchSize - max(0, int(pixelPos.Y()) + maxPatchSize - cam.imageHeight)
+
+
+				for j := range patchHeight {
+					for i := range patchWidth {
+						pixel_x := int(pixelPos.X()) + i
+						pixel_y := int(pixelPos.Y()) + j
+						col := vec.Vec3{0, 0, 0}
+						for s_j := 0; float64(s_j) < cam.SqrtSPP; s_j++ {
+							for s_i := 0; float64(s_i) < cam.SqrtSPP; s_i++ {
+								r := cam.getOffsetRay(pixel_x, pixel_y, s_i, s_j)
+								col = vec.Add(col, vec.Vec3(cam.RayColor(r, cam.MaxDepth, stuff_to_render)))
+							}
+						}
+						buffer[pixel_y*cam.ImageWidth+pixel_x] = col.Scaled(cam.samplesScale)
+						completedPixels.Add(1)
 					}
 				}
-				buffer[j*cam.ImageWidth+i] = col.Scaled(cam.samplesScale)
-				completedPixels.Add(1)
-			}(i, j)
-		}
+			}
+		}()
 	}
 
 	wg.Wait()

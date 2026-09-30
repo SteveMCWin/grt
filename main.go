@@ -16,7 +16,7 @@ func main() {
 		AspectRatio: 16.0/9.0,
 		ImageWidth: 800,
 		Vfov: 40,
-		SamplesPerPixel: 2000,
+		SamplesPerPixel: 200,
 		MaxDepth: 20,
 		Position: vec.Vec3{0.0, 0.9, 1.2},
 		LookAt: vec.Vec3{0.0, 0.5, -1.0},
@@ -26,9 +26,9 @@ func main() {
 		Background: vec.Color{ 0.003, 0.003, 0.003 },
 	}
 
-	// world := teapotScene(&camDesc)
+	world := teapotScene(&camDesc)
 	// world := boatScene(&camDesc)
-	world := cornellBoxScene(&camDesc)
+	// world := cornellBoxScene(&camDesc)
 
 	c := camera.NewCam(camDesc)
 
@@ -38,7 +38,7 @@ func main() {
 	}
 
 	start_time := time.Now()
-	c.Render(&world, outputFile)
+	c.RenderScene(&world, outputFile)
 	log.Println("Time to render:", time.Since(start_time))
 }
 
