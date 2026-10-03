@@ -73,11 +73,19 @@ func Scale(v *Vec3, f float64) {
 }
 
 func (v Vec3) Normalized() Vec3 {
-	return v.Scaled(1.0 / v.Len())
+	vlen := v.Len()
+	if vlen <= 0.0 {
+		return v
+	}
+	return v.Scaled(1.0 / vlen)
 }
 
 func Normalize(v *Vec3) {
-	Scale(v, (1.0 / v.Len()))
+	vlen := v.Len()
+	if vlen <= 0.0 {
+		return
+	}
+	Scale(v, (1.0 / vlen))
 }
 
 func Negate(v *Vec3) {

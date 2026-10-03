@@ -26,8 +26,8 @@ func main() {
 		Background: vec.Color{ 0.003, 0.003, 0.003 },
 	}
 
-	world := teapotScene(&camDesc)
-	// world := boatScene(&camDesc)
+	// world := teapotScene(&camDesc)
+	world := boatScene(&camDesc)
 	// world := cornellBoxScene(&camDesc)
 
 	c := camera.NewCam(camDesc)

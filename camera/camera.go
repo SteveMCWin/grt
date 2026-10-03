@@ -72,7 +72,7 @@ func NewCam(desc CamDescriptor) Camera {
 		DefocusAngle: desc.DefocusAngle,
 		FocusDist:    desc.FocusDist,
 		ImageWidth:   desc.ImageWidth,
-		SqrtSPP:      math.Sqrt(float64(max(1, desc.SamplesPerPixel))),
+		SqrtSPP:      math.Floor(math.Sqrt(float64(max(1, desc.SamplesPerPixel)))),
 		MaxDepth:     max(2, desc.MaxDepth),
 		Position:     desc.Position,
 		LookAt:       desc.LookAt,

@@ -13,7 +13,8 @@ type TexType interface {
 type DebugColorType int
 
 const (
-	VertexNormal = iota
+	Pink = iota
+	VertexNormal
 	VertexColor
 	VertexUV
 	WireMesh
@@ -24,9 +25,11 @@ type DebugColorProvider struct {
 }
 
 func (dcp *DebugColorProvider) GetColor(rec *HitRecord) vec.Color {
-	res := vec.Color{1.0, 0.0, 1.0}
+	var res = vec.Color{0.0, 1.0, 1.0}
 
 	switch dcp.Type {
+	case Pink:
+		res = vec.Color{1.0, 0.0, 1.0}
 	case VertexNormal:
 		res = vec.Color(rec.Normal)
 	case VertexColor:

@@ -155,7 +155,7 @@ func LoadTextureMap(objFilePath, mtlibLine string) (mat render_object.Material) 
 	parts := strings.Split(mtlibLine, OBJ_DATA_SEP)
 	if len(parts) < 2 {
 		log.Println("ERROR: when splitting material line, had less than two elements")
-		mat = &render_object.Lambertian{ Texture: &render_object.DebugColorProvider{ Type: render_object.VertexColor }}
+		mat = &render_object.Lambertian{ Texture: &render_object.DebugColorProvider{ Type: render_object.Pink }}
 		return
 	}
 	mtl_file_name := parts[1]
@@ -165,7 +165,7 @@ func LoadTextureMap(objFilePath, mtlibLine string) (mat render_object.Material) 
 	mtlFile, err := os.Open(mtl_file_path)
 	if err != nil {
 		log.Println("ERROR: couldn't open mtl file from mtl_file_name:", mtl_file_path)
-		mat = &render_object.Lambertian{ Texture: &render_object.DebugColorProvider{ Type: render_object.VertexColor }}
+		mat = &render_object.Lambertian{ Texture: &render_object.DebugColorProvider{ Type: render_object.Pink }}
 		return
 	}
 
@@ -182,7 +182,7 @@ func LoadTextureMap(objFilePath, mtlibLine string) (mat render_object.Material) 
 
 	if err := mtlFileScanner.Err(); err != nil {
 		log.Println("ERROR: while scanning mtl file:", err)
-		mat = &render_object.Lambertian{ Texture: &render_object.DebugColorProvider{ Type: render_object.VertexColor }}
+		mat = &render_object.Lambertian{ Texture: &render_object.DebugColorProvider{ Type: render_object.Pink }}
 		return
 	}
 
@@ -191,7 +191,7 @@ func LoadTextureMap(objFilePath, mtlibLine string) (mat render_object.Material) 
 	imageReader, err := os.Open(albedo_texture_filepath)
 	if err != nil {
 		log.Println("ERROR: while opening image: ", albedo_texture_filepath, " ERR_MSG: ", err)
-		mat = &render_object.Lambertian{ Texture: &render_object.DebugColorProvider{ Type: render_object.VertexColor }}
+		mat = &render_object.Lambertian{ Texture: &render_object.DebugColorProvider{ Type: render_object.Pink }}
 		return
 	}
 	defer imageReader.Close()
@@ -199,7 +199,7 @@ func LoadTextureMap(objFilePath, mtlibLine string) (mat render_object.Material) 
 	tex, format, err := image.Decode(imageReader)
 	if err != nil {
 		log.Println("ERROR: while decoding image: ", err)
-		mat = &render_object.Lambertian{ Texture: &render_object.DebugColorProvider{ Type: render_object.VertexColor }}
+		mat = &render_object.Lambertian{ Texture: &render_object.DebugColorProvider{ Type: render_object.Pink }}
 		return
 	}
 	log.Println("Decoded texture map with format ", format)
