@@ -6,12 +6,37 @@ import (
 	"grt/util"
 )
 
+const (
+	GAMMA_POWER = 2.4
+	INV_GAMMA_POWER = 1.0/2.4
+	LINEAR_THRESHOLD = 0.0031308
+	GAMMA_THRESHOLD = 0.04045
+)
+
 type Color Vec3
 
 func LinearToGamma(col Color) Color {
 	res := Color{}
 	for i := range col {
-		res[i] = math.Sqrt(col[i])
+		if col[i] < LINEAR_THRESHOLD {
+			res[i] = col[i] * 12.92
+		} else {
+			res[i] = 1.055 * math.Pow(col[i], INV_GAMMA_POWER) - 0.055
+		}
+	}
+	
+	return res
+}
+
+func GammaToLinear(col Color) Color {
+	res := Color{}
+	for i := range col {
+		if col[i] < GAMMA_THRESHOLD {
+			res[i] = col[i] / 12.92
+		} else {
+			c := (col[i] + 0.055) / 1.055
+			res[i] = math.Pow(c, GAMMA_POWER)
+		}
 	}
 	
 	return res

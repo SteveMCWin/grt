@@ -196,6 +196,7 @@ func LoadTextureMap(objFilePath, mtlibLine string) (mat render_object.Material) 
 	}
 	defer imageReader.Close()
 
+	// TODO: convert the texture from sRGB to linear once here on load, instead of on every lookup in TextureColorProvider.GetColor (check out how it's already done there in render_object/text_type.go)
 	tex, format, err := image.Decode(imageReader)
 	if err != nil {
 		log.Println("ERROR: while decoding image: ", err)

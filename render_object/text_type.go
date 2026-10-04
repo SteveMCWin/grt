@@ -61,5 +61,6 @@ func (tcp *TextureColorProvider) GetColor(rec *HitRecord) vec.Color {
 	fr := float64(r)/float64(math.MaxUint16)
 	fg := float64(g)/float64(math.MaxUint16)
 	fb := float64(b)/float64(math.MaxUint16)
-	return vec.Color{fr, fg, fb}
+	srgb := vec.Color{fr, fg, fb}
+	return vec.GammaToLinear(srgb)
 }
