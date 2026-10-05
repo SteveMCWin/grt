@@ -8,6 +8,7 @@ import (
 	"grt/util"
 	"grt/vec"
 	"io"
+	"log"
 	"math"
 	"math/rand/v2"
 	"os"
@@ -17,7 +18,17 @@ import (
 	"time"
 )
 
+type ProjectionType int
+
+const (
+	Perspective ProjectionType = iota
+	Orthographic
+	// Fish Eye
+	// Panoramic
+)
+
 type Camera struct {
+	Projection   ProjectionType
 	AspectRatio  float64
 	FocalLength  float64
 	Vfov         float64
@@ -52,6 +63,7 @@ type Camera struct {
 }
 
 type CamDescriptor struct {
+	Projection      ProjectionType
 	Position        vec.Vec3
 	LookAt          vec.Vec3
 	Up              vec.Vec3
@@ -65,8 +77,35 @@ type CamDescriptor struct {
 	MaxDepth        int
 }
 
+// returns the position of the top-left point on the viewport
+func (cam *Camera) SetUpViewport() vec.Vec3 {
+	cam.viewportU = cam.u.Scaled(cam.viewportWidth)
+	cam.viewportV = cam.v.Neg().Scaled(cam.viewportHeight)
+
+	cam.pixelDeltaU = cam.viewportU.Scaled(1.0 / float64(cam.ImageWidth))
+	cam.pixelDeltaV = cam.viewportV.Scaled(1.0 / float64(cam.imageHeight))
+
+	var viewport_upper_left vec.Vec3
+	switch cam.Projection {
+	case Perspective:
+		viewport_upper_left = vec.Subtract(cam.Position, cam.w.Scaled(cam.FocusDist), cam.viewportU.Scaled(0.5), cam.viewportV.Scaled(0.5))
+	case Orthographic:
+		// the viewport plane isn't in front of the camera, instead the viewport plane contains the camera pos point
+		viewport_upper_left = vec.Subtract(cam.Position,  cam.viewportU.Scaled(0.5), cam.viewportV.Scaled(0.5))
+	// case FishEye: TODO
+	// case Panoramic: TODO
+	default:
+		// render perspective by default
+		log.Println("WARNING: unregistered projection type!!!!")
+		viewport_upper_left = vec.Subtract(cam.Position, cam.w.Scaled(cam.FocusDist), cam.viewportU.Scaled(0.5), cam.viewportV.Scaled(0.5))
+	}
+
+	return viewport_upper_left
+}
+
 func NewCam(desc CamDescriptor) Camera {
 	cam := Camera{
+		Projection:   desc.Projection,
 		AspectRatio:  desc.AspectRatio,
 		Vfov:         desc.Vfov,
 		DefocusAngle: desc.DefocusAngle,
@@ -85,7 +124,6 @@ func NewCam(desc CamDescriptor) Camera {
 	cam.samplesScale = 1.0 / float64(cam.SqrtSPP*cam.SqrtSPP)
 	cam.recipSqrtSPP = 1.0 / cam.SqrtSPP
 
-	// focal_length := vec.Subtract(cam.Center, cam.LookAt).Len()
 	theta := util.DegToRad(cam.Vfov)
 	h := math.Tan(theta / 2.0)
 	cam.viewportHeight = 2.0 * h * cam.FocusDist
@@ -95,13 +133,7 @@ func NewCam(desc CamDescriptor) Camera {
 	cam.u = vec.Cross(cam.Up, cam.w).Normalized()
 	cam.v = vec.Cross(cam.w, cam.u)
 
-	cam.viewportU = cam.u.Scaled(cam.viewportWidth)
-	cam.viewportV = cam.v.Neg().Scaled(cam.viewportHeight)
-
-	cam.pixelDeltaU = cam.viewportU.Scaled(1.0 / float64(cam.ImageWidth))
-	cam.pixelDeltaV = cam.viewportV.Scaled(1.0 / float64(cam.imageHeight))
-
-	viewport_upper_left := vec.Subtract(cam.Position, cam.w.Scaled(cam.FocusDist), cam.viewportU.Scaled(0.5), cam.viewportV.Scaled(0.5))
+	viewport_upper_left := cam.SetUpViewport()
 
 	cam.startPixelLoc = vec.Add(viewport_upper_left, vec.Add(cam.pixelDeltaU, cam.pixelDeltaV).Scaled(0.5))
 
@@ -118,6 +150,7 @@ func (cam Camera) RenderScene(stuff_to_render render_object.Hittable, w ...io.Wr
 
 	var completedPixels atomic.Int64
 
+	// Progress output goroutine
 	progressDone := make(chan struct{})
 	go func() {
 		ticker := time.NewTicker(300 * time.Millisecond)
@@ -133,22 +166,24 @@ func (cam Camera) RenderScene(stuff_to_render render_object.Hittable, w ...io.Wr
 		}
 	}()
 
+	// Setting up patch rendering
 	maxPatchSize := 16
 	numWorkers := runtime.NumCPU()
 
-	horizontalPatches := int(math.Ceil(float64(cam.ImageWidth)/float64(maxPatchSize)))
-	verticalPatches := int(math.Ceil(float64(cam.imageHeight)/float64(maxPatchSize)))
-	numPatches :=  horizontalPatches * verticalPatches
+	horizontalPatches := int(math.Ceil(float64(cam.ImageWidth) / float64(maxPatchSize)))
+	verticalPatches := int(math.Ceil(float64(cam.imageHeight) / float64(maxPatchSize)))
+	numPatches := horizontalPatches * verticalPatches
 	startPixels := make([]vec.Vec3, 0, numPatches)
 
 	for j := range verticalPatches {
 		for i := range horizontalPatches {
-			startPixels = append(startPixels, vec.Vec3{float64(i*maxPatchSize), float64(j*maxPatchSize), 0})
+			startPixels = append(startPixels, vec.Vec3{float64(i * maxPatchSize), float64(j * maxPatchSize), 0})
 		}
 	}
 
 	patchQueue := make(chan vec.Vec3, numWorkers)
 
+	// Load the queue
 	go func() {
 		for _, vec := range startPixels {
 			patchQueue <- vec
@@ -158,14 +193,14 @@ func (cam Camera) RenderScene(stuff_to_render render_object.Hittable, w ...io.Wr
 
 	var wg sync.WaitGroup
 
+	// Give each core work to do (render a patch)
 	for range numWorkers {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for pixelPos := range patchQueue {
-				patchWidth := maxPatchSize - max(0, int(pixelPos.X()) + maxPatchSize - cam.ImageWidth)
-				patchHeight := maxPatchSize - max(0, int(pixelPos.Y()) + maxPatchSize - cam.imageHeight)
-
+				patchWidth := maxPatchSize - max(0, int(pixelPos.X())+maxPatchSize-cam.ImageWidth)
+				patchHeight := maxPatchSize - max(0, int(pixelPos.Y())+maxPatchSize-cam.imageHeight)
 
 				for j := range patchHeight {
 					for i := range patchWidth {
@@ -219,16 +254,27 @@ func (cam Camera) defocusDiskSample() vec.Vec3 {
 
 func (cam Camera) getOffsetRay(i, j, s_i, s_j int) ray.Ray {
 	offset := cam.sampleSquareStratified(s_i, s_j)
-	pixel_sample := vec.Add(cam.startPixelLoc, cam.pixelDeltaU.Scaled(float64(i)+offset.X()), cam.pixelDeltaV.Scaled(float64(j)+offset.Y()))
+	curr_pixel_pos := vec.Add(cam.startPixelLoc, cam.pixelDeltaU.Scaled(float64(i)+offset.X()), cam.pixelDeltaV.Scaled(float64(j)+offset.Y()))
 
 	var ray_origin vec.Vec3
+	var ray_direction vec.Vec3
+
+	var cam_lens vec.Vec3
 	if cam.DefocusAngle <= 0 {
-		ray_origin = cam.Position
+		cam_lens = cam.Position
 	} else {
-		ray_origin = cam.defocusDiskSample()
+		cam_lens = cam.defocusDiskSample()
 	}
 
-	ray_direction := vec.Subtract(pixel_sample, ray_origin)
+	switch cam.Projection{
+	case Perspective:
+		ray_origin = cam_lens
+		ray_direction = vec.Subtract(curr_pixel_pos, cam_lens)
+	case Orthographic:
+		ray_origin = curr_pixel_pos
+		ray_direction = vec.Subtract(cam.LookAt, cam_lens).Normalized()
+	}
+
 	return ray.NewRay(ray_origin, ray_direction)
 }
 

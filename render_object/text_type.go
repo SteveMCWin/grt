@@ -13,7 +13,7 @@ type TexType interface {
 type DebugColorType int
 
 const (
-	Pink = iota
+	Pink DebugColorType = iota
 	VertexNormal
 	VertexColor
 	VertexUV

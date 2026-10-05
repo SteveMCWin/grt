@@ -84,11 +84,14 @@ func reflectance(cosine, refraction_index float64) float64 {
 
 type Emitter struct {
 	Texture TexType
+	Intensity float64
 }
 
 func (e *Emitter) Scatter(r_in *ray.Ray, rec *HitRecord, attenuation *vec.Color, r_out *ray.Ray) bool {
 	// put the light color of the emitter into hit record
-	rec.Emitted = e.Texture.GetColor(rec).Normalized()
+	texColor := e.Texture.GetColor(rec).Normalized()
+	intensifiedColor := vec.Vec3(texColor).Scaled(e.Intensity)
+	rec.Emitted = vec.Color(intensifiedColor)
 
 	// emitters don't scatter the light further, they are the source
 	return false

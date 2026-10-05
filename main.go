@@ -13,11 +13,12 @@ import (
 
 func main() {
 	camDesc := camera.CamDescriptor {
+		Projection: camera.Orthographic,
 		AspectRatio: 16.0/9.0,
 		ImageWidth: 800,
 		Vfov: 40,
-		SamplesPerPixel: 200,
-		MaxDepth: 20,
+		SamplesPerPixel: 50,
+		MaxDepth: 8,
 		Position: vec.Vec3{0.0, 0.9, 1.2},
 		LookAt: vec.Vec3{0.0, 0.5, -1.0},
 		Up: vec.Vec3{0.0, 1.0, 0.0},
@@ -27,8 +28,8 @@ func main() {
 	}
 
 	// world := teapotScene(&camDesc)
-	world := boatScene(&camDesc)
-	// world := cornellBoxScene(&camDesc)
+	// world := boatScene(&camDesc)
+	world := cornellBoxScene(&camDesc)
 
 	c := camera.NewCam(camDesc)
 
@@ -44,14 +45,14 @@ func main() {
 
 func teapotScene(camDesc *camera.CamDescriptor) render_object.HittableList {
 	teapotTexture := &render_object.FlatColorProvider{ Color: vec.Color{ 0.933, 0.945, 0.940 } }
-	lightTexture1 := &render_object.FlatColorProvider{ Color: vec.Color{ 8.0, 4.0, 3.0 } }
-	lightTexture2 := &render_object.FlatColorProvider{ Color: vec.Color{ 3.0, 4.0, 8.0 } }
-	lightTexture3 := &render_object.FlatColorProvider{ Color: vec.Color{ 4.0, 4.0, 4.0 } }
+	lightTexture1 := &render_object.FlatColorProvider{ Color: vec.Color{ 0.848, 0.424, 0.318 } }
+	lightTexture2 := &render_object.FlatColorProvider{ Color: vec.Color{ 0.318, 0.424, 0.848 } }
+	lightTexture3 := &render_object.FlatColorProvider{ Color: vec.Color{ 0.577, 0.577, 0.577 } }
 
 	teapotMaterial := &render_object.Lambertian{Texture: teapotTexture}
-	lightMaterial1 := &render_object.Emitter{Texture: lightTexture1}
-	lightMaterial2 := &render_object.Emitter{Texture: lightTexture2}
-	lightMaterial3 := &render_object.Emitter{Texture: lightTexture3}
+	lightMaterial1 := &render_object.Emitter{Texture: lightTexture1, Intensity: 3}
+	lightMaterial2 := &render_object.Emitter{Texture: lightTexture2, Intensity: 3}
+	lightMaterial3 := &render_object.Emitter{Texture: lightTexture3, Intensity: 2}
 
 	// WORLD
 	world := render_object.HittableList{ Shapes: make([]render_object.Hittable, 0) }
@@ -78,13 +79,13 @@ func teapotScene(camDesc *camera.CamDescriptor) render_object.HittableList {
 }
 
 func boatScene(camDesc *camera.CamDescriptor) render_object.HittableList {
-	lightTexture1 := &render_object.FlatColorProvider{ Color: vec.Color{ 8.0, 4.0, 3.0 } }
-	lightTexture2 := &render_object.FlatColorProvider{ Color: vec.Color{ 3.0, 4.0, 8.0 } }
-	lightTexture3 := &render_object.FlatColorProvider{ Color: vec.Color{ 4.0, 4.0, 4.0 } }
+	lightTexture1 := &render_object.FlatColorProvider{ Color: vec.Color{ 0.848, 0.424, 0.318 } }
+	lightTexture2 := &render_object.FlatColorProvider{ Color: vec.Color{ 0.318, 0.424, 0.848 } }
+	lightTexture3 := &render_object.FlatColorProvider{ Color: vec.Color{ 0.577, 0.577, 0.577 } }
 
-	lightMaterial1 := &render_object.Emitter{Texture: lightTexture1}
-	lightMaterial2 := &render_object.Emitter{Texture: lightTexture2}
-	lightMaterial3 := &render_object.Emitter{Texture: lightTexture3}
+	lightMaterial1 := &render_object.Emitter{Texture: lightTexture1, Intensity: 3}
+	lightMaterial2 := &render_object.Emitter{Texture: lightTexture2, Intensity: 3}
+	lightMaterial3 := &render_object.Emitter{Texture: lightTexture3, Intensity: 2}
 
 	// WORLD
 	world := render_object.HittableList{ Shapes: make([]render_object.Hittable, 0) }
@@ -121,14 +122,14 @@ func cornellBoxScene(camDesc *camera.CamDescriptor) render_object.HittableList {
 	whiteTexture  := &render_object.FlatColorProvider{ Color: vec.Color{ 0.73, 0.73, 0.73 } }
 	greenTexture  := &render_object.FlatColorProvider{ Color: vec.Color{ 0.1, 0.7, 0.1 } }
 	redTexture    := &render_object.FlatColorProvider{ Color: vec.Color{ 0.7, 0.1, 0.1 } }
-	lightTexture  := &render_object.FlatColorProvider{ Color: vec.Color{ 8.0, 8.0, 8.0 } }
+	lightTexture  := &render_object.FlatColorProvider{ Color: vec.Color{ 0.577, 0.577, 0.577 } }
 	teapotTexture := &render_object.FlatColorProvider{ Color: vec.Color{ 0.933, 0.945, 0.940 } }
 	mirrorTexture := &render_object.FlatColorProvider{ Color: vec.Color{ 0.95, 0.95, 0.95 } }
 
 	whiteMaterial  := &render_object.Lambertian{Texture: whiteTexture}
 	greenMaterial  := &render_object.Lambertian{Texture: greenTexture}
 	redMaterial    := &render_object.Lambertian{Texture: redTexture}
-	lightMaterial  := &render_object.Emitter{Texture: lightTexture}
+	lightMaterial  := &render_object.Emitter{Texture: lightTexture, Intensity: 4}
 	teapotMaterial := &render_object.Lambertian{Texture: teapotTexture}
 	mirrorMaterial := &render_object.Metal{Texture: mirrorTexture, Fuzz: 0.0}
 

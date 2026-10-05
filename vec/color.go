@@ -53,6 +53,7 @@ func (c Color) String() string {
 }
 
 func (c Color) Components() (r, g, b byte) {
+	// TODO: tone map c here before the gamma correction, since clamping each channel on its own turns bright colored lights white. quick fix: if the largest channel is > 1, divide all channels by it (keeps the hue). later: Reinhard on luminance or ACES for a smooth roll off
 	gamma_corrected := LinearToGamma(c)
 	color_intensity := util.Interval{Min: 0.0, Max: 0.999}
 	r = byte(256 * color_intensity.Clamp(gamma_corrected[0]))
