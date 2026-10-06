@@ -23,7 +23,7 @@ type ProjectionType int
 const (
 	Perspective ProjectionType = iota
 	Orthographic
-	// Fish Eye
+	FishEye
 	// Panoramic
 )
 
@@ -34,6 +34,7 @@ type Camera struct {
 	Vfov         float64
 	DefocusAngle float64
 	FocusDist    float64
+	Aperture     float64
 
 	ImageWidth int
 	SqrtSPP    float64
@@ -75,6 +76,7 @@ type CamDescriptor struct {
 	ImageWidth      int
 	SamplesPerPixel int
 	MaxDepth        int
+	Aperture        float64
 }
 
 // returns the position of the top-left point on the viewport
@@ -87,12 +89,11 @@ func (cam *Camera) SetUpViewport() vec.Vec3 {
 
 	var viewport_upper_left vec.Vec3
 	switch cam.Projection {
-	case Perspective:
+	case Perspective, FishEye:
 		viewport_upper_left = vec.Subtract(cam.Position, cam.w.Scaled(cam.FocusDist), cam.viewportU.Scaled(0.5), cam.viewportV.Scaled(0.5))
 	case Orthographic:
 		// the viewport plane isn't in front of the camera, instead the viewport plane contains the camera pos point
-		viewport_upper_left = vec.Subtract(cam.Position,  cam.viewportU.Scaled(0.5), cam.viewportV.Scaled(0.5))
-	// case FishEye: TODO
+		viewport_upper_left = vec.Subtract(cam.Position, cam.viewportU.Scaled(0.5), cam.viewportV.Scaled(0.5))
 	// case Panoramic: TODO
 	default:
 		// render perspective by default
@@ -106,6 +107,7 @@ func (cam *Camera) SetUpViewport() vec.Vec3 {
 func NewCam(desc CamDescriptor) Camera {
 	cam := Camera{
 		Projection:   desc.Projection,
+		Aperture:     desc.Aperture, // TODO: rework this and perspective into structs 'Projection' which will have their config that's passed here
 		AspectRatio:  desc.AspectRatio,
 		Vfov:         desc.Vfov,
 		DefocusAngle: desc.DefocusAngle,
@@ -266,13 +268,25 @@ func (cam Camera) getOffsetRay(i, j, s_i, s_j int) ray.Ray {
 		cam_lens = cam.defocusDiskSample()
 	}
 
-	switch cam.Projection{
+	switch cam.Projection {
 	case Perspective:
 		ray_origin = cam_lens
 		ray_direction = vec.Subtract(curr_pixel_pos, cam_lens)
 	case Orthographic:
 		ray_origin = curr_pixel_pos
 		ray_direction = vec.Subtract(cam.LookAt, cam_lens).Normalized()
+	case FishEye: // https://paulbourke.net/dome/fisheye/
+		ray_origin = cam_lens
+
+		x_norm := 2.0*float64(i)/float64(cam.ImageWidth) - 1.0
+		y_norm := -(2.0*float64(j)/float64(cam.imageHeight) - 1.0) // negate because of inverse y direction
+		r := math.Sqrt(x_norm*x_norm + y_norm*y_norm)
+		phi := math.Atan2(y_norm, x_norm)
+		theta := r * cam.Aperture/2
+		x_dir := math.Sin(theta) * math.Cos(phi)
+		y_dir := math.Sin(theta) * math.Sin(phi)
+		z_dir := math.Cos(theta) * (-1.0) // our z is bacwards
+		ray_direction = vec.Add(cam.u.Scaled(x_dir), cam.v.Scaled(y_dir), cam.w.Scaled(z_dir))
 	}
 
 	return ray.NewRay(ray_origin, ray_direction)

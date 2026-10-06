@@ -13,11 +13,12 @@ import (
 
 func main() {
 	camDesc := camera.CamDescriptor {
-		Projection: camera.Orthographic,
+		Projection: camera.FishEye,
+		Aperture: 3.1415/1.3,
 		AspectRatio: 16.0/9.0,
 		ImageWidth: 800,
 		Vfov: 40,
-		SamplesPerPixel: 500,
+		SamplesPerPixel: 50,
 		MaxDepth: 20,
 		Position: vec.Vec3{0.0, 0.9, 1.2},
 		LookAt: vec.Vec3{0.0, 0.5, -1.0},
@@ -115,7 +116,7 @@ func boatScene(camDesc *camera.CamDescriptor) render_object.HittableList {
 // Triangles are only hit from the side their normal (AB x AC) points to, so every quad's normal points into the box.
 func cornellBoxScene(camDesc *camera.CamDescriptor) render_object.HittableList {
 	camDesc.AspectRatio = 1.0
-	camDesc.Position = vec.Vec3{0.0, 1.0, 3.4}
+	camDesc.Position = vec.Vec3{0.0, 1.0, 0.15}
 	camDesc.LookAt = vec.Vec3{0.0, 1.0, -1.0}
 	camDesc.FocusDist = 4.4
 
